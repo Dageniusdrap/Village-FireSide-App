@@ -8,6 +8,7 @@
     "allowJs": true,
     "jsx": "preserve",
     "incremental": true,
-    "noEmit": true
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
   }
 }

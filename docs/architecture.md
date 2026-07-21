@@ -53,3 +53,39 @@ Sub-project 2) documents each migration as it's introduced.
 fanned out across every workspace package via Turborepo) on every push
 and pull request to `main`. There is no test step yet — one is added
 once Sub-project 21 (Testing & seed data) introduces a test suite.
+
+## Adding a new app to the monorepo
+
+A few non-obvious wiring steps are required for a new app to build and
+lint cleanly in this scaffold:
+
+- **Extend the right TypeScript base.** Point the new app's `tsconfig.json`
+  at the matching variant in `packages/typescript-config` (`nextjs.json`
+  for a Next.js app, `expo.json` for an Expo app, or `base.json` directly
+  otherwise) rather than hand-rolling `compilerOptions`. Browser-facing
+  variants must include DOM types (`"lib": [..., "DOM", "DOM.Iterable"]`)
+  — `base.json` only sets `"lib": ["ES2022"]`.
+- **Add the ESLint peer workaround.** If the new app bundles its own
+  framework ESLint preset (e.g. `eslint-config-next`, `eslint-config-expo`),
+  add this to its `package.json` alongside the `@village-fireside/eslint-config`
+  devDependency:
+  ```json
+  "dependenciesMeta": {
+    "@village-fireside/eslint-config": { "injected": true }
+  }
+  ```
+  `packages/eslint-config` depends on `typescript-eslint` directly (not as
+  a peer dependency), so without this, pnpm can resolve a single shared
+  `typescript-eslint` instance whose plugin object collides with the
+  separate copy the framework preset bundles for itself, breaking lint at
+  the `@typescript-eslint` plugin-instance level. `injected: true` gives
+  each consuming app its own correctly-scoped copy instead.
+- **Wire up `packages/shared` if you import it.** `packages/shared` ships
+  raw, uncompiled TypeScript (`main`/`types` point at `./src/index.ts`,
+  no build step). Bundlers that skip transpiling `node_modules`/workspace
+  packages by default (e.g. Next.js via webpack/Turbopack) need to be told
+  to make an exception. For a Next.js app, add
+  `transpilePackages: ["@village-fireside/shared"]` to `next.config.ts`
+  before importing from `@village-fireside/shared` — otherwise the first
+  build after the import lands will fail. (Metro, used by Expo/React
+  Native, does not have this restriction and needs no equivalent config.)
