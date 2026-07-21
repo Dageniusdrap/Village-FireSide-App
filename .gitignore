@@ -1,1 +1,35 @@
 .worktrees/
+
+# dependencies
+node_modules/
+.pnpm-store/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# build outputs
+.next/
+dist/
+build/
+.expo/
+.expo-shared/
+web-build/
+
+# turbo
+.turbo/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# misc
+*.tsbuildinfo
