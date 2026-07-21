@@ -293,6 +293,16 @@ the querying user's, letting `anon`/`authenticated` read this safe slice
 of an otherwise admin-only table — the same escape mechanism `is_admin()`
 uses via `SECURITY DEFINER`, applied to a view instead of a function.
 
+In addition to that column masking, the view also filters rows: a
+contributor only appears in it at all if they're linked (via
+`episode_contributors`) to at least one episode with
+`status = 'published'`. A contributor with no linked episode yet, or
+whose only linked episodes are unpublished (e.g. reverted after a
+consent was revoked), is invisible through this view even though their
+row still exists in `contributors` — visibility here follows the
+episode's editorial publish state, not the contributor's consent
+records directly.
+
 ## Why some foreign keys don't cascade (continued)
 
 `consents.contributor_id` has no `ON DELETE` clause, for the same reason

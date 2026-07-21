@@ -9,6 +9,13 @@ select
   case when is_anonymous then null else photo_url end as photo_url,
   case when is_anonymous then null else district end as district,
   case when is_anonymous then null else country end as country
-from contributors;
+from contributors
+where exists (
+  select 1
+  from episode_contributors ec
+  join episodes e on e.id = ec.episode_id
+  where ec.contributor_id = contributors.id
+    and e.status = 'published'
+);
 
 grant select on public_contributors to anon, authenticated;
