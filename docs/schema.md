@@ -29,7 +29,7 @@ profile creation" below.
 | `id`                       | `uuid`, PK                      | Same value as `auth.users.id`.                                                             |
 | `display_name`             | `text`, not null                | Falls back to the user's email prefix or "New Listener" at signup if no name was supplied. |
 | `avatar_url`               | `text`, nullable                |                                                                                            |
-| `role`                     | `user_role`, default `listener` | Can only change via the service role — see "Protected columns".                            |
+| `role`                     | `user_role`, default `listener` | Can only change via the service role — see `docs/rls-policies.md`.                         |
 | `country`                  | `text`, nullable                |                                                                                            |
 | `coin_balance`             | `bigint`, default `0`           | Whole coins, never a fraction. Can only change via the service role.                       |
 | `is_premium`               | `boolean`, default `false`      | Can only change via the service role.                                                      |
