@@ -89,3 +89,19 @@ pattern every other content table uses.
   inquiries (e.g. changing `status` as staff follow up). There's no
   delete policy for any role — inquiries are meant to be retained, not
   removed.
+
+### `contributors`, `consents`, `source_materials`
+
+No public policy at all — `is_admin()` grants a `for all` policy on
+each. The only public-facing read surface onto `contributors` is the
+`public_contributors` view (see `docs/schema.md`), not this table
+directly.
+
+### `episode_contributors`
+
+- **Public select** (`episode_contributors_select_published`): visible
+  when its linked `episodes` row has `status = 'published'` (checked via
+  a subquery on `episode_id`) — mirrors `destination_media`'s pattern of
+  visibility keyed off a parent table.
+- **Admin full access** (`episode_contributors_admin_all`): same
+  `is_admin()` pattern as the content tables.
