@@ -45,6 +45,11 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~6.0.3"
   },
+  "dependenciesMeta": {
+    "@village-fireside/eslint-config": {
+      "injected": true
+    }
+  },
   "scripts": {
     "start": "expo start",
     "dev": "expo start",
