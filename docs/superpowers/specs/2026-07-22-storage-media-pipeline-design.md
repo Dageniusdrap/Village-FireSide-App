@@ -44,6 +44,11 @@ files are pasted into Studio's SQL editor.
 - `docs/media-pipeline.md` documenting bucket purposes, the audio/image
   upload conventions, the `get-episode-audio` contract, and the
   reinterpretation of `episodes.audio_url` (see Design → Reused column).
+- `plays` documented in `docs/schema.md` and `docs/rls-policies.md` too,
+  not just `media-pipeline.md` — every other table in the project gets an
+  entry in both of those files, and `plays` is a real table with its own
+  RLS policies, not storage-bucket configuration. (Buckets themselves
+  aren't tables, so they belong only in `media-pipeline.md`.)
 
 ## Non-goals
 
@@ -187,6 +192,16 @@ free episodes still work and paid ones correctly 403.
   (→ Prompt 18), the actual admin upload UI (→ Prompt 14), DRM
   (cross-referenced to Prompt 10's downloaded-files note, not otherwise
   applicable here).
+
+### Documentation: `docs/schema.md` and `docs/rls-policies.md`
+
+`plays` gets a normal table entry in `docs/schema.md` (columns, types,
+notes — same format as every other table) and a normal policy section in
+`docs/rls-policies.md` (owner-select, admin-all — same format as
+`unlocks`/`transactions`), keeping it consistent with how every other
+table in the project is documented. Storage buckets themselves aren't
+tables and don't get entries in either file — they're fully covered by
+`docs/media-pipeline.md`.
 
 ## Verification
 
