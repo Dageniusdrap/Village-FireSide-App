@@ -281,6 +281,46 @@ enum).
 
 Primary key is `(episode_id, contributor_id, role)`.
 
+### `cultural_groups`
+
+A people or kingdom of Africa (e.g. Buganda, Acholi) that content can be
+organized around — the "Peoples & Kingdoms" browsing dimension.
+
+| Column                                                | Type                       | Notes                                    |
+| ----------------------------------------------------- | -------------------------- | ---------------------------------------- |
+| `id`                                                  | `uuid`, PK                 |                                          |
+| `name`                                                | `text`, not null           |                                          |
+| `slug`                                                | `text`, not null, unique   |                                          |
+| `description`, `country`, `region`, `cover_image_url` | nullable                   | Descriptive metadata, often incomplete.  |
+| `is_published`                                        | `boolean`, default `false` | Gates public visibility.                 |
+| `created_at`, `updated_at`                            | `timestamptz`              | `updated_at` auto-maintained by trigger. |
+
+### `series_cultural_groups`
+
+Junction table linking a series to the cultural group(s) it belongs to.
+
+| Column              | Type                                                          | Notes                    |
+| ------------------- | ------------------------------------------------------------- | ------------------------ |
+| `series_id`         | `uuid`, not null, FK → `series`, `ON DELETE CASCADE`          | Part of the primary key. |
+| `cultural_group_id` | `uuid`, not null, FK → `cultural_groups`, `ON DELETE CASCADE` | Part of the primary key. |
+
+Primary key is `(series_id, cultural_group_id)`.
+
+### `contributor_cultural_groups`
+
+Junction table linking a contributor to the cultural group(s) they
+belong to.
+
+| Column              | Type                                                          | Notes                    |
+| ------------------- | ------------------------------------------------------------- | ------------------------ |
+| `contributor_id`    | `uuid`, not null, FK → `contributors`, `ON DELETE CASCADE`    | Part of the primary key. |
+| `cultural_group_id` | `uuid`, not null, FK → `cultural_groups`, `ON DELETE CASCADE` | Part of the primary key. |
+
+Primary key is `(contributor_id, cultural_group_id)`. Exposes only a
+contributor/culture pairing — no personal data. `contributors` itself
+stays admin-only; the only public-facing surface onto it is the
+`public_contributors` view.
+
 ## `public_contributors` view
 
 A public-facing view over `contributors`, exposing only `id`,
@@ -316,6 +356,26 @@ Every episode with `content_source` of `narrated_production` or
 `ai_assisted` must show a "Narrated production" label in the app UI
 (Prompt 6's `SourceBadge` component). This is a UI/content rule, not
 something the database enforces.
+
+## Peoples & Kingdoms (app behavior — documented now, built later)
+
+"Peoples & Kingdoms" is a planned browsing dimension for content
+organized by African cultural group (`cultural_groups`, above). This
+section documents the intended behavior; none of it is implemented yet:
+
+- **Browse UI:** a "Peoples & Kingdoms" section on Home and a filter in
+  the Learn tab (Prompts 7 and 12).
+- **Terminology rule:** the UI always says "Peoples & Kingdoms" or
+  "Cultures" — never "tribes".
+- **Per-country visibility:** an `app_settings` key (table created in
+  Prompt 9) will control whether cultural group browsing is shown per
+  country — intended default: ON for Uganda, OFF for Rwanda, where
+  ethnic categorization of content is legally sensitive. When OFF, the
+  same content stays browsable by theme and region only. This toggle
+  does not exist yet; `cultural_groups.is_published` is the only gate
+  enforced today.
+- **Seed data:** example cultural groups (Buganda, Bunyoro-Kitara,
+  Busoga, Acholi, Ankole) are deferred to Prompt 19, not created here.
 
 ## Automatic profile creation
 
