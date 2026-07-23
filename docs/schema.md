@@ -335,3 +335,18 @@ each have a `BEFORE UPDATE` trigger that sets `updated_at = now()` on
 every update, using one shared `set_updated_at()` function. Application
 code never sets `updated_at` directly — it's always overwritten by the
 trigger.
+
+## `plays`
+
+One row per successful `get-episode-audio` grant — basic listening
+analytics (extended later by Prompt 17's `play_events` table).
+
+| Column       | Type             | Notes                                                                                                 |
+| ------------ | ---------------- | ----------------------------------------------------------------------------------------------------- |
+| `id`         | `uuid`, PK       |                                                                                                       |
+| `user_id`    | `uuid`, nullable | FK → `profiles`, `ON DELETE SET NULL`. Null for guest plays.                                          |
+| `episode_id` | `uuid`, not null | FK → `episodes`, `ON DELETE CASCADE`.                                                                 |
+| `played_at`  | `timestamptz`    | Defaults to `now()`; not auto-maintained (no update trigger — a play is never edited, only inserted). |
+
+Every row is written by the `get-episode-audio` Edge Function using the
+service role — no client ever inserts into this table directly.
