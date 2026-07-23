@@ -1,3 +1,5 @@
+-- supabase/migrations/20260722120000_storage_buckets.sql
+
 insert into storage.buckets (id, name, public)
 values
   ('audio-episodes', 'audio-episodes', false),
