@@ -2841,7 +2841,6 @@ const { requireAuth, promptVisible, dismissPrompt } = useRequireAuth();
   onSignUp={() => router.push('/sign-up')}
 />
 ```
-````
 
 ## Admin (`apps/admin`)
 
@@ -2874,7 +2873,6 @@ manually.
    ```
 
 3. That account can now sign in at `/sign-in` in the admin app.
-
 ````
 
 - [ ] **Step 2: Verify the doc covers the required points**
@@ -2890,7 +2888,7 @@ assert "decideRedirect" in doc
 assert "update profiles set role = 'admin'" in doc, "must include the admin-promotion SQL snippet"
 print("OK: docs/auth.md covers store/listener, gate primitive, proxy rename, and admin-promotion SQL")
 PY
-````
+```
 
 Expected: `OK: docs/auth.md covers store/listener, gate primitive, proxy rename, and admin-promotion SQL`
 
