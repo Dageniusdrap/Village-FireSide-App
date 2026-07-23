@@ -44,15 +44,15 @@ Deno.serve(async (req) => {
   const supabaseAnon = createClient(supabaseUrl, anonKey);
   const supabaseService = createClient(supabaseUrl, serviceRoleKey);
 
-  let userId: string | null = null;
-  if (jwt) {
-    const { data, error } = await supabaseAnon.auth.getUser(jwt);
-    if (!error && data.user) {
-      userId = data.user.id;
-    }
-  }
-
   try {
+    let userId: string | null = null;
+    if (jwt) {
+      const { data, error } = await supabaseAnon.auth.getUser(jwt);
+      if (!error && data.user) {
+        userId = data.user.id;
+      }
+    }
+
     const { data: episode, error: episodeError } = await supabaseService
       .from("episodes")
       .select("id, status, access_tier, audio_url")
@@ -105,10 +105,14 @@ Deno.serve(async (req) => {
       throw signedUrlError ?? new Error("failed to create signed url");
     }
 
-    await supabaseService.from("plays").insert({
+    const { error: playsError } = await supabaseService.from("plays").insert({
       user_id: userId,
       episode_id: episodeId,
     });
+
+    if (playsError) {
+      console.error("get-episode-audio plays insert error:", playsError);
+    }
 
     return jsonResponse(
       { signedUrl: signedUrlData.signedUrl, expiresIn: SIGNED_URL_TTL_SECONDS },
