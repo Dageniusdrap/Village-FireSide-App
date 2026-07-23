@@ -199,26 +199,35 @@ OTP expired, network failure) are caught per-screen into a local
 - `src/lib/supabase/client.ts` — `createBrowserClient(...)`, used by the
   sign-in form (client component)
 - `src/lib/supabase/server.ts` — `createServerClient(...)` reading/writing
-  the Next.js cookie store, used by middleware and server components
+  the Next.js cookie store, used by proxy and server components
 
-### Middleware
+### Proxy (formerly "middleware")
 
-`src/middleware.ts`, matcher excludes `/sign-in`, `/not-authorized`, and
-static assets:
+This project runs Next.js 16, where the `middleware.ts` file convention is
+deprecated and renamed to `proxy.ts` (the exported function is named
+`proxy`, not `middleware`; `apps/admin/AGENTS.md` flags this exact kind of
+breaking change and was confirmed against the installed
+`next/dist/docs/.../file-conventions/proxy.md`). Functionally this plays
+the same role the prompt's "protect all admin routes with middleware"
+instruction describes — the rename doesn't change the architecture below,
+only the file name and export name.
+
+`src/proxy.ts`, `config.matcher` excludes `/sign-in`, `/not-authorized`,
+and static assets:
 
 1. `supabase.auth.getUser()` — also refreshes the session cookie as a
-   side effect (the standard `@supabase/ssr` pattern). No user →
-   redirect to `/sign-in`.
+   side effect (the standard `@supabase/ssr` pattern, using `getAll`/
+   `setAll` cookie methods, not the deprecated `get`/`set`/`remove` trio).
+   No user → redirect to `/sign-in`.
 2. User present → `supabase.from('profiles').select('role').eq('id',
 user.id).single()`. This is allowed under the already-applied
    `profiles_select_own` RLS policy (`auth.uid() = id`) — no new policy
    needed. `role !== 'admin'` → redirect to `/not-authorized`.
 
-Keeping both checks in middleware (rather than session-only in
-middleware + a separate role-check in a layout) matches the prompt's
-literal "protect all admin routes with middleware," and is a small,
-standard addition to the cookie-refresh call the `@supabase/ssr` pattern
-already requires.
+Keeping both checks in proxy (rather than session-only in proxy + a
+separate role-check in a layout) matches the prompt's literal "protect
+all admin routes with middleware," and is a small, standard addition to
+the cookie-refresh call the `@supabase/ssr` pattern already requires.
 
 ### Screens
 
@@ -250,7 +259,7 @@ live Supabase project or a rendered screen tree:
   password) — same rules as mobile, tested independently since the two
   apps don't share a validation module (different runtime concerns,
   React Native vs. Next.js)
-- `src/middleware.test.ts` — mocked Supabase server client; three cases
+- `src/proxy.test.ts` — mocked Supabase server client; three cases
   (no session → redirect to `/sign-in`; session + non-admin role →
   redirect to `/not-authorized`; session + admin role → request proceeds)
 
@@ -268,7 +277,7 @@ test plan.
 New `docs/auth.md`:
 
 - The auth architecture summary above (mobile store + route groups,
-  admin middleware), so later prompts (6+) know how to check auth state
+  admin proxy), so later prompts (6+) know how to check auth state
   rather than re-deriving it
 - The guest-mode gate contract (`useRequireAuth`) for Prompt 6+ to adopt
   at real gated actions
