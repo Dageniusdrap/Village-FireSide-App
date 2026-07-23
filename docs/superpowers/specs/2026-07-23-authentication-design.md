@@ -60,13 +60,14 @@ this prompt's needs.
 
 ## New dependencies
 
-| Package                                              | App    | Purpose                                                      |
-| ---------------------------------------------------- | ------ | ------------------------------------------------------------ |
-| `expo-secure-store`                                  | mobile | Encrypted session persistence (Keychain/Keystore-backed)     |
-| `zod`                                                | mobile | Form validation schemas (email, password, OTP digits, phone) |
-| `react-hook-form`                                    | mobile | Form state, shared validation pattern with admin             |
-| `jest`, `jest-expo`, `@testing-library/react-native` | mobile | Unit tests                                                   |
-| `vitest`                                             | admin  | Unit tests (admin already has `zod` + `react-hook-form`)     |
+| Package                                              | App    | Purpose                                                                                                                                                                         |
+| ---------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `expo-secure-store`                                  | mobile | Encrypted session persistence (Keychain/Keystore-backed)                                                                                                                        |
+| `zod`                                                | mobile | Form validation schemas (email, password, OTP digits, phone)                                                                                                                    |
+| `react-hook-form`                                    | mobile | Form state, shared validation pattern with admin                                                                                                                                |
+| `@hookform/resolvers`                                | both   | Connects zod schemas to react-hook-form's `resolver` option — neither app has this wired up yet, despite admin already having `zod` + `react-hook-form` installed independently |
+| `jest`, `jest-expo`, `@testing-library/react-native` | mobile | Unit tests                                                                                                                                                                      |
+| `vitest`                                             | admin  | Unit tests                                                                                                                                                                      |
 
 `turbo.json` gets a `test` task (`"test": { "dependsOn": ["^build"] }`,
 matching the existing `lint`/`typecheck` shape) and each app's
