@@ -10,9 +10,9 @@
 | `consent-documents` | No      | Scanned signed consent agreements                             | Admin only, never public             |
 
 Access to all four buckets is controlled by policies on `storage.objects`
-(see `docs/rls-policies.md` is not the right place for storage policies —
-they live in `supabase/migrations/20260722120000_storage_buckets.sql` and
-are summarized above). `images` is the only bucket with a public read
+(not documented in `docs/rls-policies.md` — storage policies live in
+`supabase/migrations/20260722120000_storage_buckets.sql` and are
+summarized above). `images` is the only bucket with a public read
 policy; the other three are `is_admin()`-only, with no public policy at
 all — the app never reads from them directly.
 
