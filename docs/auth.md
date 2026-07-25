@@ -5,18 +5,32 @@
 Auth state lives in a zustand store (`src/stores/auth-store.ts`): `session`,
 `guestMode`, `passwordRecovery`, and `loading`. A single hook,
 `useAuthListener` (mounted once, in the root layout), is the only writer to
-`session`/`loading` — it subscribes to `supabase.auth.onAuthStateChange` and
-also flips `passwordRecovery` to `true` when Supabase fires a
-`PASSWORD_RECOVERY` event (via the `resetPasswordForEmail` deep-link flow).
-No screen calls `supabase.auth.getSession()` directly; they all read the
-store.
+`session`/`loading` — it subscribes to `supabase.auth.onAuthStateChange`. No
+screen calls `supabase.auth.getSession()` directly; they all read the store.
+Setting a truthy `session` (through `_setSession`, the one setter both the
+initial `getSession()` and every `onAuthStateChange` event flow through) also
+clears `guestMode`, so a real sign-in never leaves stale guest state behind.
+
+Password recovery needs an extra hook because native URL detection is off
+(`detectSessionInUrl: false` in `src/lib/supabase.ts` — RN has no `window`).
+`useRecoveryLinkHandler` (also mounted once, in the root layout) listens for
+the `villagefireside://reset-password` deep link via `expo-linking`, parses it
+with the pure `src/lib/recovery-link.ts` (`parseRecoveryLink`, handling both
+PKCE `?code=…&type=recovery` and implicit `#access_token=…&type=recovery`
+links), establishes the recovery session via
+`exchangeCodeForSession`/`setSession`, and sets `passwordRecovery` to `true`.
+The root layout then redirects a session with `passwordRecovery` set to
+`(auth)/reset-password`; that screen clears the flag on a successful password
+update, after which the next redirect sends the now-authenticated user to
+`(app)`.
 
 Routing is two Expo Router groups: `(auth)` (Welcome, Sign In, Sign Up,
 Phone Sign In, OTP Verify, Forgot Password, Reset Password) and `(app)` (a
 placeholder authenticated screen for now — Prompt 6 replaces it with the
 real tab shell). The root layout renders a `<Redirect>` to `(auth)/welcome`
-when there's no session and no guest mode, or to `(app)` when either is
-true.
+when there's no session and no guest mode, to `(auth)/reset-password` when a
+session has `passwordRecovery` set, and to `(app)` otherwise (a session
+without recovery, or guest mode).
 
 Sessions persist through `expo-secure-store`, via a custom adapter
 (`src/lib/secure-store-adapter.ts`) that transparently chunks values above

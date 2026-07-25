@@ -6,6 +6,7 @@ import { ActivityIndicator, StyleSheet, useColorScheme } from "react-native";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthListener } from "@/hooks/use-auth-listener";
+import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
 import { useAuthStore } from "@/stores/auth-store";
 
 SplashScreen.preventAutoHideAsync();
@@ -13,10 +14,12 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   useAuthListener();
+  useRecoveryLinkHandler();
 
   const loading = useAuthStore((state) => state.loading);
   const session = useAuthStore((state) => state.session);
   const guestMode = useAuthStore((state) => state.guestMode);
+  const passwordRecovery = useAuthStore((state) => state.passwordRecovery);
 
   useEffect(() => {
     if (!loading) {
@@ -40,7 +43,9 @@ export default function RootLayout() {
     <ThemeProvider value={theme}>
       <AnimatedSplashOverlay />
       {!session && !guestMode && <Redirect href="/welcome" />}
-      {(session || guestMode) && <Redirect href="/" />}
+      {session && passwordRecovery && <Redirect href="/reset-password" />}
+      {session && !passwordRecovery && <Redirect href="/" />}
+      {!session && guestMode && <Redirect href="/" />}
       <Slot />
     </ThemeProvider>
   );

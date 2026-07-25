@@ -32,6 +32,7 @@ export default function ResetPasswordScreen() {
       setApiError(error.message);
       return;
     }
+    useAuthStore.getState()._setPasswordRecovery(false);
     setDone(true);
   };
 

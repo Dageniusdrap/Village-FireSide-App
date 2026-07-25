@@ -25,7 +25,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     await supabase.auth.signOut();
     set({ guestMode: false, passwordRecovery: false });
   },
-  _setSession: (session) => set({ session }),
+  _setSession: (session) =>
+    set((state) => ({ session, guestMode: session ? false : state.guestMode })),
   _setLoading: (loading) => set({ loading }),
   _setPasswordRecovery: (passwordRecovery) => set({ passwordRecovery }),
 }));
