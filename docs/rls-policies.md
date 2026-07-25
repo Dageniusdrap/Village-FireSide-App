@@ -105,3 +105,15 @@ directly.
   visibility keyed off a parent table.
 - **Admin full access** (`episode_contributors_admin_all`): same
   `is_admin()` pattern as the content tables.
+
+### `cultural_groups`, `series_cultural_groups`, `contributor_cultural_groups`
+
+- **Public select** (`cultural_groups_select_published`): rows where
+  `is_published = true`.
+- **Junction tables** (`series_cultural_groups_select_published`,
+  `contributor_cultural_groups_select_published`): visible when the
+  linked `cultural_groups` row has `is_published = true` (checked via a
+  subquery on `cultural_group_id`) — mirrors `episode_contributors`'
+  pattern of visibility keyed off a parent table.
+- **Admin full access** (`*_admin_all`): `is_admin()` on all three
+  tables.
