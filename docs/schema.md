@@ -75,6 +75,7 @@ one category like "elder history").
 | `destination_id`                 | `uuid`, nullable, FK → `destinations` | A series doesn't have to be tied to one destination.                                                                                                            |
 | `is_published`                   | `boolean`, default `false`            |                                                                                                                                                                 |
 | `sort_order`                     | `int`, default `0`                    | Controls display order; defaults to 0 rather than being nullable so sorting is always predictable.                                                              |
+| `is_featured`                    | `boolean`, default `false`            | Admin-flagged for the Home tab's hero section.                                                                                                                  |
 | `created_at`, `updated_at`       | `timestamptz`                         |                                                                                                                                                                 |
 
 ### `episodes`
