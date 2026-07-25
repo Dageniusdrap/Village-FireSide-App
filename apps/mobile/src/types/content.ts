@@ -25,3 +25,25 @@ export type Destination = {
   region: string | null;
   coverImageUrl: string | null;
 };
+
+export type ContributorType =
+  "elder" | "voice_artist" | "writer" | "tour_guide" | "historian" | "translator";
+
+export type CulturalGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  country: string | null;
+  region: string | null;
+  coverImageUrl: string | null;
+};
+
+export type PublicContributor = {
+  id: string;
+  displayName: string;
+  contributorType: ContributorType;
+  bio: string | null;
+  photoUrl: string | null;
+  district: string | null;
+  country: string | null;
+};
