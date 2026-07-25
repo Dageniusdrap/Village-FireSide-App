@@ -9,6 +9,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.110.7",
+    "@tanstack/react-query": "^5.101.4",
     "@village-fireside/shared": "workspace:*",
     "expo": "~57.0.7",
     "expo-constants": "~57.0.6",

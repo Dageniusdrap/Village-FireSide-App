@@ -5,6 +5,7 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { Lora_600SemiBold } from "@expo-google-fonts/lora";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, Redirect, Slot, ThemeProvider } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -15,6 +16,7 @@ import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthListener } from "@/hooks/use-auth-listener";
 import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
+import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth-store";
 
 SplashScreen.preventAutoHideAsync();
@@ -47,23 +49,27 @@ export default function RootLayout() {
 
   if (loading || !fontsLoaded) {
     return (
-      <ThemeProvider value={theme}>
-        <ThemedView style={styles.loadingContainer}>
-          <ActivityIndicator />
-        </ThemedView>
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider value={theme}>
+          <ThemedView style={styles.loadingContainer}>
+            <ActivityIndicator />
+          </ThemedView>
+        </ThemeProvider>
+      </QueryClientProvider>
     );
   }
 
   return (
-    <ThemeProvider value={theme}>
-      <AnimatedSplashOverlay />
-      {!session && !guestMode && <Redirect href="/welcome" />}
-      {session && passwordRecovery && <Redirect href="/reset-password" />}
-      {session && !passwordRecovery && <Redirect href="/" />}
-      {!session && guestMode && <Redirect href="/" />}
-      <Slot />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider value={theme}>
+        <AnimatedSplashOverlay />
+        {!session && !guestMode && <Redirect href="/welcome" />}
+        {session && passwordRecovery && <Redirect href="/reset-password" />}
+        {session && !passwordRecovery && <Redirect href="/" />}
+        {!session && guestMode && <Redirect href="/" />}
+        <Slot />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
