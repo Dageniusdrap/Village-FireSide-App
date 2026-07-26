@@ -2,6 +2,8 @@ import { Stack } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { AudioStatusDriver } from "@/components/audio-status-driver";
+import { PlaybackToast } from "@/components/playback-toast";
+import { UnlockSheetStub } from "@/components/unlock-sheet-stub";
 import { MiniPlayer } from "@/components/ui/mini-player";
 
 export default function AppLayout() {
@@ -15,6 +17,8 @@ export default function AppLayout() {
       </Stack>
       <MiniPlayer />
       <AudioStatusDriver />
+      <UnlockSheetStub />
+      <PlaybackToast />
     </View>
   );
 }
