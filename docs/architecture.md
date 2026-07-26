@@ -54,6 +54,34 @@ fanned out across every workspace package via Turborepo) on every push
 and pull request to `main`. There is no test step yet — one is added
 once Sub-project 21 (Testing & seed data) introduces a test suite.
 
+## Mobile audio: expo-audio, not react-native-track-player
+
+Prompt 1 pre-declared `react-native-track-player` as the mobile app's
+audio dependency, and Prompt 8 (Audio Player) was written against it. It
+was swapped for `expo-audio` before any Prompt 8 code landed, for a
+concrete, verified reason — not a preference change.
+
+`apps/mobile` runs React Native 0.86, which is fully bridgeless: the New
+Architecture is mandatory with no opt-out (legacy architecture support was
+removed starting RN 0.82). `react-native-track-player`'s own README states
+plainly that New Architecture support is a v5-only feature — v4 and
+earlier aren't compatible, with no interop-layer fallback claimed. As of
+this decision, v5 has no stable release: npm's `latest` dist-tag for the
+package is still `4.1.2`; the only v5 builds published are `5.0.0-alpha0`
+and nightlies. Shipping alpha-stage native audio code as the foundation of
+a production, launch-track app was judged too risky, and there was no
+stable version of the originally-specified library that would actually
+run in this project at all.
+
+`expo-audio` is Expo's own first-party SDK module, so New Architecture
+support isn't a separate compatibility question — it ships as part of the
+same SDK this app already builds against. By the time this decision was
+made, it had grown an `AudioPlaylist` API (queue, `next()`/`previous()`,
+loop modes), `setActiveForLockScreen()` (lock-screen media controls with
+title/artist/artwork), and `setAudioModeAsync()` (background playback +
+interruption modes) — enough to cover Prompt 8's full requirement set
+without a pre-release dependency.
+
 ## Adding a new app to the monorepo
 
 A few non-obvious wiring steps are required for a new app to build and
