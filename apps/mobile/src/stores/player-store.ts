@@ -64,63 +64,82 @@ async function fetchServerProgress(
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => {
+  let loadGeneration = 0;
+
   async function loadTrackAtIndex(
     index: number,
     startPositionOverrideSeconds?: number,
   ): Promise<void> {
+    const generation = ++loadGeneration;
     const { queue } = get();
     if (index < 0 || index >= queue.length) {
       audioPlayer.pause();
       return;
     }
-    // Bounds already checked above, so `queue[index]` is guaranteed to
-    // exist; noUncheckedIndexedAccess just can't see that.
     const episode = queue[index]!;
-    const result = await resolveEpisodeSource(episode.id);
 
-    if (result.type === "locked") {
-      set({ lockedEpisode: episode });
-      audioPlayer.pause();
-      return;
-    }
-    if (result.type === "not_found") {
-      await loadTrackAtIndex(index + 1);
-      return;
-    }
-    if (result.type === "error") {
-      // Current track keeps playing per the spec's queue-building
-      // behavior table — this is reached mid-queue (auto-advance or
-      // manual next/previous), never on the very first track of a
-      // freshly built queue.
-      set({ toastMessage: "Couldn't load the next episode." });
-      return;
-    }
-
-    const source = result.type === "local" ? { uri: `file://${result.path}` } : { uri: result.url };
-    audioPlayer.replace(source);
-    audioPlayer.setActiveForLockScreen(true, {
-      title: episode.title,
-      artist: episode.seriesTitle,
-      artworkUrl: episode.coverImageUrl ?? undefined,
-    });
-
-    const session = useAuthStore.getState().session;
-    const localProgress = readLocalProgress(episode.id);
-    const serverProgress = session ? await fetchServerProgress(episode.id, session.user.id) : null;
-    const resumeSeconds =
-      startPositionOverrideSeconds ?? resolveResumePosition(localProgress, serverProgress);
-
-    set({ currentIndex: index, currentEpisode: episode, lockedEpisode: null });
-
-    if (resumeSeconds > 0) {
-      try {
-        await audioPlayer.seekTo(resumeSeconds);
-      } catch {
-        // Best-effort — a native timing edge case right after replace(),
-        // not fatal to playback starting.
+    try {
+      const result = await resolveEpisodeSource(episode.id);
+      if (generation !== loadGeneration) {
+        return; // a newer load call superseded this one while we awaited
       }
+
+      if (result.type === "locked") {
+        set({ lockedEpisode: episode });
+        audioPlayer.pause();
+        return;
+      }
+      if (result.type === "not_found") {
+        await loadTrackAtIndex(index + 1);
+        return;
+      }
+      if (result.type === "error") {
+        // Current track keeps playing per the spec's queue-building
+        // behavior table — this is reached mid-queue (auto-advance or
+        // manual next/previous), never on the very first track of a
+        // freshly built queue.
+        set({ toastMessage: "Couldn't load the next episode." });
+        return;
+      }
+
+      const source =
+        result.type === "local" ? { uri: `file://${result.path}` } : { uri: result.url };
+      audioPlayer.replace(source);
+      audioPlayer.setActiveForLockScreen(true, {
+        title: episode.title,
+        artist: episode.seriesTitle,
+        artworkUrl: episode.coverImageUrl ?? undefined,
+      });
+
+      const session = useAuthStore.getState().session;
+      const localProgress = readLocalProgress(episode.id);
+      const serverProgress = session
+        ? await fetchServerProgress(episode.id, session.user.id)
+        : null;
+      if (generation !== loadGeneration) {
+        return; // superseded again while awaiting the server progress fetch
+      }
+
+      const resumeSeconds =
+        startPositionOverrideSeconds ?? resolveResumePosition(localProgress, serverProgress);
+
+      set({ currentIndex: index, currentEpisode: episode, lockedEpisode: null });
+
+      if (resumeSeconds > 0) {
+        try {
+          await audioPlayer.seekTo(resumeSeconds);
+        } catch {
+          // Best-effort — a native timing edge case right after replace(),
+          // not fatal to playback starting.
+        }
+      }
+      audioPlayer.play();
+    } catch (error) {
+      if (generation === loadGeneration) {
+        set({ toastMessage: "Couldn't load the next episode." });
+      }
+      console.error("loadTrackAtIndex error:", error);
     }
-    audioPlayer.play();
   }
 
   return {
