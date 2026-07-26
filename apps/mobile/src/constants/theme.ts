@@ -3,53 +3,64 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-import '@/global.css';
+import "@/global.css";
 
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    primary: "#1F3B2C",
+    primaryPressed: "#16291F",
+    accent: "#C1652F",
+    accentSoft: "#F2DCC9",
+    background: "#FAF6EF",
+    backgroundElement: "#FFFFFF",
+    backgroundSelected: "#EFE3D0",
+    text: "#1C1B18",
+    textSecondary: "#6B6459",
+    gold: "#C08A28",
+    border: "#E4D9C5",
+    error: "#C0392B",
+    success: "#2E7D4F",
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    primary: "#4C7A5A",
+    primaryPressed: "#3A5D45",
+    accent: "#E08A54",
+    accentSoft: "#3A2A1E",
+    background: "#14181A",
+    backgroundElement: "#1E2422",
+    backgroundSelected: "#262E2B",
+    text: "#F2EFE8",
+    textSecondary: "#A9A79D",
+    gold: "#E0B24A",
+    border: "#2E3532",
+    error: "#E57368",
+    success: "#4CAF77",
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+export const Fonts = {
+  serif: "Lora_600SemiBold",
+  sans: "Inter_400Regular",
+  sansMedium: "Inter_500Medium",
+  sansSemiBold: "Inter_600SemiBold",
+  sansBold: "Inter_700Bold",
+  mono:
+    Platform.select({
+      ios: "ui-monospace",
+      web: "var(--font-mono)",
+      default: "monospace",
+    }) ?? "monospace",
+  rounded:
+    Platform.select({
+      ios: "ui-rounded",
+      web: "var(--font-rounded)",
+      default: "normal",
+    }) ?? "normal",
+};
 
 export const Spacing = {
   half: 2,

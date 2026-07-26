@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Button } from "@/components/ui/button";
+import { SectionHeader } from "@/components/ui/section-header";
 import { Spacing } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth-store";
 
-export default function AppHomeScreen() {
+export default function ProfileScreen() {
   const session = useAuthStore((state) => state.session);
   const guestMode = useAuthStore((state) => state.guestMode);
   const signOut = useAuthStore((state) => state.signOut);
@@ -41,12 +43,15 @@ export default function AppHomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="title">
+        <SectionHeader title="Profile" />
+        <ThemedText type="default">
           {guestMode ? "Browsing as Guest" : `Signed in as ${displayName ?? "…"}`}
         </ThemedText>
-        <Pressable style={styles.button} onPress={() => void signOut()}>
-          <ThemedText type="linkPrimary">{guestMode ? "Sign In" : "Sign Out"}</ThemedText>
-        </Pressable>
+        <Button
+          label={guestMode ? "Sign In" : "Sign Out"}
+          variant="ghost"
+          onPress={() => void signOut()}
+        />
       </SafeAreaView>
     </ThemedView>
   );
@@ -58,11 +63,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.four,
-  },
-  button: {
-    padding: Spacing.three,
+    padding: Spacing.four,
+    gap: Spacing.three,
   },
 });

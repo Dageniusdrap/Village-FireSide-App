@@ -1,4 +1,12 @@
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import { Lora_600SemiBold } from "@expo-google-fonts/lora";
 import { DarkTheme, DefaultTheme, Redirect, Slot, ThemeProvider } from "expo-router";
+import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, useColorScheme } from "react-native";
@@ -16,20 +24,28 @@ export default function RootLayout() {
   useAuthListener();
   useRecoveryLinkHandler();
 
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Lora_600SemiBold,
+  });
+
   const loading = useAuthStore((state) => state.loading);
   const session = useAuthStore((state) => state.session);
   const guestMode = useAuthStore((state) => state.guestMode);
   const passwordRecovery = useAuthStore((state) => state.passwordRecovery);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && fontsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [loading]);
+  }, [loading, fontsLoaded]);
 
   const theme = colorScheme === "dark" ? DarkTheme : DefaultTheme;
 
-  if (loading) {
+  if (loading || !fontsLoaded) {
     return (
       <ThemeProvider value={theme}>
         <ThemedView style={styles.loadingContainer}>
