@@ -465,4 +465,8 @@ client ever calls it directly. Returns `{"result": "..."}` where
 `result` is one of `unlocked`, `already_unlocked` (a no-op — no
 re-charge), `insufficient_coins` (with `balance`/`price`),
 `not_coin_gated` (the episode isn't `access_tier = 'coins'`), or
-`not_found`.
+`not_found`. A genuinely concurrent duplicate call (not a sequential
+retry) is also caught via a `unique_violation` exception handler around
+the balance-check-through-inserts block, which rolls back that call's
+own redundant decrement before returning the same graceful
+`already_unlocked` result.
