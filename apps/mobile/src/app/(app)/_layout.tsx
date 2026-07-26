@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { AudioStatusDriver } from "@/components/audio-status-driver";
 import { MiniPlayer } from "@/components/ui/mini-player";
 
 export default function AppLayout() {
@@ -13,6 +14,7 @@ export default function AppLayout() {
         <Stack.Screen name="cultural-group/[id]" options={{ headerShown: false }} />
       </Stack>
       <MiniPlayer />
+      <AudioStatusDriver />
     </View>
   );
 }
