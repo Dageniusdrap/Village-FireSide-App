@@ -19,12 +19,15 @@ type CulturalGroupRow = {
 };
 
 type SeriesLinkRow = {
+  // PostgREST returns `null` here when the linked series is currently
+  // hidden from this user by its own RLS policy (e.g. unpublished),
+  // even though the parent `series_cultural_groups` row is visible.
   series: {
     id: string;
     title: string;
     cover_image_url: string | null;
     episodes: { count: number }[];
-  };
+  } | null;
 };
 
 type ContributorLinkRow = {
@@ -103,12 +106,17 @@ export function useCulturalGroupDetail(id: string) {
         country: group.country,
         region: group.region,
         coverImageUrl: group.cover_image_url,
-        series: seriesLinks.map((link) => ({
-          id: link.series.id,
-          title: link.series.title,
-          coverImageUrl: link.series.cover_image_url,
-          episodeCount: link.series.episodes[0]?.count ?? 0,
-        })),
+        series: seriesLinks
+          .filter(
+            (link): link is SeriesLinkRow & { series: NonNullable<SeriesLinkRow["series"]> } =>
+              link.series !== null,
+          )
+          .map((link) => ({
+            id: link.series.id,
+            title: link.series.title,
+            coverImageUrl: link.series.cover_image_url,
+            episodeCount: link.series.episodes[0]?.count ?? 0,
+          })),
         contributors,
       };
     },

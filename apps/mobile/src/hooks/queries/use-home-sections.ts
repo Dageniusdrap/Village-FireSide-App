@@ -62,13 +62,16 @@ export function useElderVoicesSeries() {
 
 type ContinueListeningRow = {
   position_seconds: number;
+  // PostgREST returns `null` here when the linked episode is currently
+  // hidden from this user by its own RLS policy (e.g. unpublished), even
+  // though the parent `listening_progress` row is visible.
   episodes: {
     id: string;
     title: string;
     duration_seconds: number | null;
     access_tier: Episode["accessTier"];
     content_source: Episode["contentSource"];
-  };
+  } | null;
 };
 
 export function useContinueListening() {
@@ -94,13 +97,21 @@ export function useContinueListening() {
       if (error) {
         throw error;
       }
-      return data.map((row): Episode => ({
-        id: row.episodes.id,
-        title: row.episodes.title,
-        durationSeconds: row.episodes.duration_seconds,
-        accessTier: row.episodes.access_tier,
-        contentSource: row.episodes.content_source,
-      }));
+      return data
+        .filter(
+          (
+            row,
+          ): row is ContinueListeningRow & {
+            episodes: NonNullable<ContinueListeningRow["episodes"]>;
+          } => row.episodes !== null,
+        )
+        .map((row): Episode => ({
+          id: row.episodes.id,
+          title: row.episodes.title,
+          durationSeconds: row.episodes.duration_seconds,
+          accessTier: row.episodes.access_tier,
+          contentSource: row.episodes.content_source,
+        }));
     },
   });
 }

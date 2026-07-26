@@ -35,12 +35,16 @@ type ContributorRow = {
 
 type EpisodeContributorRow = {
   role: string;
+  // PostgREST returns `null` for `episodes` (or its nested `series`) when the
+  // linked row is currently hidden from this user by its own RLS policy
+  // (e.g. an unpublished episode or series), even though the parent
+  // `episode_contributors` row is visible.
   episodes: {
     id: string;
     title: string;
     series_id: string;
-    series: { title: string };
-  };
+    series: { title: string } | null;
+  } | null;
 };
 
 export function useContributorDetail(id: string) {
@@ -74,13 +78,23 @@ export function useContributorDetail(id: string) {
         photoUrl: contributor.photo_url,
         district: contributor.district,
         country: contributor.country,
-        episodes: episodeLinks.map((link) => ({
-          id: link.episodes.id,
-          title: link.episodes.title,
-          seriesId: link.episodes.series_id,
-          seriesTitle: link.episodes.series.title,
-          role: link.role,
-        })),
+        episodes: episodeLinks
+          .filter(
+            (
+              link,
+            ): link is EpisodeContributorRow & {
+              episodes: NonNullable<EpisodeContributorRow["episodes"]> & {
+                series: NonNullable<NonNullable<EpisodeContributorRow["episodes"]>["series"]>;
+              };
+            } => link.episodes !== null && link.episodes.series !== null,
+          )
+          .map((link) => ({
+            id: link.episodes.id,
+            title: link.episodes.title,
+            seriesId: link.episodes.series_id,
+            seriesTitle: link.episodes.series.title,
+            role: link.role,
+          })),
       };
     },
   });
