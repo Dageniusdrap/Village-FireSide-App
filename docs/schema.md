@@ -452,3 +452,17 @@ Seeded rows:
 | `default_free_episode_count` | `3`                                                        | Not yet consumed by any code — Prompt 14's admin episode-creation UI will read this when it exists. |
 | `coin_pack_products`         | `{"coins_100": 100, "coins_500": 500, "coins_1200": 1200}` | `revenuecat-webhook`, mapping a RevenueCat coin-pack `product_id` to a coin amount.                 |
 | `premium_product_id`         | `"premium_monthly"`                                        | `revenuecat-webhook`, identifying which `product_id` is the premium subscription.                   |
+
+## `unlock_episode` function
+
+`unlock_episode(p_user_id uuid, p_episode_id uuid) returns jsonb` is the
+only path by which `profiles.coin_balance` is ever decremented. It runs
+the balance check, the decrement, and the `unlocks`/`transactions`
+inserts in one transaction (a `SELECT ... FOR UPDATE` on the profile row
+makes concurrent calls for the same user race-free), and is called only
+by the `unlock-episode` edge function using the service role — no
+client ever calls it directly. Returns `{"result": "..."}` where
+`result` is one of `unlocked`, `already_unlocked` (a no-op — no
+re-charge), `insufficient_coins` (with `balance`/`price`),
+`not_coin_gated` (the episode isn't `access_tier = 'coins'`), or
+`not_found`.
