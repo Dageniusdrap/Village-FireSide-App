@@ -15,15 +15,15 @@ import { SignInPromptSheet } from "@/components/sign-in-prompt-sheet";
 import { Spacing } from "@/constants/theme";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useIsFavorited } from "@/hooks/queries/use-is-favorited";
-import { useSeriesDetail, type SeriesDetailEpisode } from "@/hooks/queries/use-series-detail";
+import { useSeriesDetail } from "@/hooks/queries/use-series-detail";
 import { useToggleFavorite } from "@/hooks/queries/use-toggle-favorite";
-import { usePlayerStore } from "@/stores/player-store";
+import { usePlayerStore, type QueueEpisode } from "@/stores/player-store";
 
 export default function SeriesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const query = useSeriesDetail(id);
-  const play = usePlayerStore((state) => state.play);
+  const playQueue = usePlayerStore((state) => state.playQueue);
   const { toggle } = useToggleFavorite();
   const { requireAuth, promptVisible, dismissPrompt } = useRequireAuth();
   const isFavoritedQuery = useIsFavorited({ seriesId: id });
@@ -54,18 +54,21 @@ export default function SeriesDetailScreen() {
   const resumable = series.episodes.find((episode) => episode.resumePositionSeconds !== null);
   const firstFreeEpisode = series.episodes.find((episode) => episode.accessTier === "free");
 
+  const buildQueue = (): QueueEpisode[] =>
+    series.episodes.map((episode) => ({
+      ...episode,
+      seriesId: series.id,
+      seriesTitle: series.title,
+      coverImageUrl: series.coverImageUrl,
+    }));
+
   const playAll = () => {
-    const target: SeriesDetailEpisode | undefined =
-      resumable ?? firstFreeEpisode ?? series.episodes[0];
-    if (target) {
-      play({
-        id: target.id,
-        title: target.title,
-        durationSeconds: target.durationSeconds,
-        accessTier: target.accessTier,
-        contentSource: target.contentSource,
-      });
+    const target = resumable ?? firstFreeEpisode ?? series.episodes[0];
+    if (!target) {
+      return;
     }
+    const startIndex = series.episodes.findIndex((episode) => episode.id === target.id);
+    playQueue(buildQueue(), startIndex).catch(() => {});
   };
 
   const handleFavorite = () => {
@@ -124,14 +127,12 @@ export default function SeriesDetailScreen() {
               resumePositionSeconds={episode.resumePositionSeconds}
               onPress={
                 episode.accessTier === "free"
-                  ? () =>
-                      play({
-                        id: episode.id,
-                        title: episode.title,
-                        durationSeconds: episode.durationSeconds,
-                        accessTier: episode.accessTier,
-                        contentSource: episode.contentSource,
-                      })
+                  ? () => {
+                      const startIndex = series.episodes.findIndex(
+                        (item) => item.id === episode.id,
+                      );
+                      playQueue(buildQueue(), startIndex).catch(() => {});
+                    }
                   : undefined
               }
             />
