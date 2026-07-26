@@ -59,11 +59,11 @@ This table isn't mentioned in the original schema requirements' RLS list;
 this policy set was chosen to mirror its parent table, matching the
 pattern every other content table uses.
 
-### `favorites`, `listening_progress`
+### `favorites`, `listening_progress`, `episode_bookmarks`
 
 - **Owner full access** (`*_owner_all`): select/insert/update/delete
-  restricted to `auth.uid() = user_id`. Both tables are user-mutable
-  state — adding/removing a favorite, updating playback position — so
+  restricted to `auth.uid() = user_id`. All three tables are user-mutable
+  state — adding/removing a favorite, updating playback position, creating/updating bookmarks — so
   "owner only" was read as full CRUD rather than read-only.
 
 ### `unlocks`, `transactions`

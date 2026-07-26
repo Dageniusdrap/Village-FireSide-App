@@ -411,3 +411,19 @@ analytics (extended later by Prompt 17's `play_events` table).
 
 Every row is written by the `get-episode-audio` Edge Function using the
 service role — no client ever inserts into this table directly.
+
+### `episode_bookmarks`
+
+A user bookmarking a specific moment in an episode, with an optional note.
+
+| Column             | Type                              | Notes                |
+| ------------------ | --------------------------------- | -------------------- |
+| `id`               | `uuid`, PK                        |                      |
+| `user_id`          | `uuid`, not null, FK → `profiles` | `ON DELETE CASCADE`. |
+| `episode_id`       | `uuid`, not null, FK → `episodes` | `ON DELETE CASCADE`. |
+| `position_seconds` | `int`, not null                   |                      |
+| `note`             | `text`, nullable                  |                      |
+| `created_at`       | `timestamptz`                     |                      |
+
+No unique constraint — a user can bookmark multiple moments in the same
+episode.
