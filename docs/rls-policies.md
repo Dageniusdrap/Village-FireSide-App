@@ -129,3 +129,13 @@ directly.
   pattern of visibility keyed off a parent table.
 - **Admin full access** (`*_admin_all`): `is_admin()` on all three
   tables.
+
+### `app_settings`
+
+- **Public select** (`app_settings_select_anyone`): `using (true)` —
+  anyone, including unauthenticated requests, can read every row. This
+  is a config table, not user data; nothing in it is sensitive, and the
+  mobile app needs to read tunables like `default_free_episode_count`
+  without an admin session.
+- **Admin full access** (`app_settings_admin_all`): same `is_admin()`
+  pattern as the content tables.

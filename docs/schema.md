@@ -391,7 +391,7 @@ are present at signup.
 
 ## `updated_at` maintenance
 
-`profiles`, `destinations`, `series`, `episodes`, and `listening_progress`
+`profiles`, `destinations`, `series`, `episodes`, `listening_progress`, and `app_settings`
 each have a `BEFORE UPDATE` trigger that sets `updated_at = now()` on
 every update, using one shared `set_updated_at()` function. Application
 code never sets `updated_at` directly — it's always overwritten by the
@@ -427,3 +427,28 @@ A user bookmarking a specific moment in an episode, with an optional note.
 
 No unique constraint — a user can bookmark multiple moments in the same
 episode.
+
+### `app_settings`
+
+A generic key/value config table for tunable values that don't warrant
+their own column or table — e.g. the default number of free episodes
+per series, and the product-identifier-to-behavior mappings the
+`revenuecat-webhook` edge function reads.
+
+| Column       | Type              | Notes                                                     |
+| ------------ | ----------------- | --------------------------------------------------------- |
+| `key`        | `text`, PK        |                                                           |
+| `value`      | `jsonb`, not null | Shape depends on the key — see the seeded rows below.     |
+| `updated_at` | `timestamptz`     | Auto-maintained by the shared `set_updated_at()` trigger. |
+
+Publicly readable (like published content) so the mobile app can read
+tunables like `default_free_episode_count` without an admin session;
+writes are admin-only.
+
+Seeded rows:
+
+| `key`                        | `value`                                                    | Used by                                                                                             |
+| ---------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `default_free_episode_count` | `3`                                                        | Not yet consumed by any code — Prompt 14's admin episode-creation UI will read this when it exists. |
+| `coin_pack_products`         | `{"coins_100": 100, "coins_500": 500, "coins_1200": 1200}` | `revenuecat-webhook`, mapping a RevenueCat coin-pack `product_id` to a coin amount.                 |
+| `premium_product_id`         | `"premium_monthly"`                                        | `revenuecat-webhook`, identifying which `product_id` is the premium subscription.                   |
