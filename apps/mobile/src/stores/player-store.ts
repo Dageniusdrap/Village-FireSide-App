@@ -74,13 +74,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     if (index < 0 || index >= queue.length) {
       // Queue exhausted — nothing left to play. Clear the lock-screen
       // controls too, not just pause, so the OS lock screen doesn't keep
-      // showing a paused episode with no way to progress. Also reset
-      // currentIndex/currentEpisode to -1/null so a stale index/episode
-      // pair is never left around for a subsequent playQueue() call's new
-      // `queue` array to be misread against.
+      // showing a paused episode with no way to progress.
       audioPlayer.pause();
       audioPlayer.clearLockScreenControls();
-      set({ currentIndex: -1, currentEpisode: null });
       return;
     }
     // Only capture the generation token once we know this call will
@@ -97,7 +93,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       }
 
       if (result.type === "locked") {
-        set({ lockedEpisode: episode, currentIndex: -1, currentEpisode: null });
+        set({ lockedEpisode: episode });
         audioPlayer.pause();
         audioPlayer.clearLockScreenControls();
         return;
@@ -108,16 +104,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       }
       if (result.type === "error") {
         // Current track keeps playing per the spec's queue-building
-        // behavior table. `queue` was already committed by playQueue
-        // before this function ran, so currentIndex/currentEpisode must be
-        // reset here too — otherwise they'd keep pointing at whatever was
-        // playing from a *previous* queue, desynced from the new `queue`
-        // array.
-        set({
-          toastMessage: "Couldn't load this episode.",
-          currentIndex: -1,
-          currentEpisode: null,
-        });
+        // behavior table.
+        set({ toastMessage: "Couldn't load this episode." });
         return;
       }
 
@@ -155,11 +143,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       audioPlayer.play();
     } catch (error) {
       if (generation === loadGeneration) {
-        set({
-          toastMessage: "Couldn't load this episode.",
-          currentIndex: -1,
-          currentEpisode: null,
-        });
+        set({ toastMessage: "Couldn't load this episode." });
       }
       console.error("loadTrackAtIndex error:", error);
     }
@@ -175,8 +159,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     toastMessage: null,
 
     playQueue: async (episodes, startIndex, startPositionOverrideSeconds) => {
+      const previousQueue = get().queue;
+      const previousEpisode = get().currentEpisode;
       set({ queue: episodes });
       await loadTrackAtIndex(startIndex, startPositionOverrideSeconds);
+      if (get().currentEpisode === previousEpisode) {
+        // loadTrackAtIndex didn't reach its success branch (locked, error,
+        // or an exhausted not_found chain) — currentEpisode is legitimately
+        // unchanged, but `queue` now holds a different series than whatever
+        // currentIndex/currentEpisode still refer to. Revert the queue swap
+        // so queue and currentIndex/currentEpisode stay mutually consistent
+        // — this is the ONLY place `queue` is ever swapped wholesale, so
+        // next()/previous() (which never touch `queue`) don't need this
+        // guard and correctly leave the current track playing on failure.
+        set({ queue: previousQueue });
+      }
     },
     playPause: () => {
       if (audioPlayer.playing) {
