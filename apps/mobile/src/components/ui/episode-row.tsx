@@ -11,7 +11,7 @@ function lockLabel(accessTier: AccessTier, coinPrice: number | undefined): strin
   if (accessTier === "premium") {
     return "★ Premium";
   }
-  if (accessTier === "coins" && coinPrice) {
+  if (accessTier === "coins" && coinPrice !== undefined) {
     return `🪙 ${coinPrice}`;
   }
   return "🔒";

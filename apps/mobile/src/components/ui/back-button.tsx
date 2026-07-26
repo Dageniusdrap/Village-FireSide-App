@@ -11,7 +11,7 @@ export function BackButton() {
 
   return (
     <Pressable
-      onPress={() => router.back()}
+      onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
       hitSlop={Spacing.two}
       style={styles.button}
       accessibilityRole="button"

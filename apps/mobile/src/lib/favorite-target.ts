@@ -21,13 +21,21 @@ export function resolveFavoriteTarget(target: FavoriteTarget): FavoriteRow {
  * Shared TanStack Query key for a single favorite target, so the read hook
  * (`useIsFavorited`) and the mutation's optimistic cache update
  * (`useToggleFavorite`) always agree on the same key for the same target.
+ *
+ * Scoped by `userId` (not just the target) so cached favorite state can't
+ * leak from one signed-in account to the next on the same device — this
+ * mirrors `use-home-sections.ts`'s `useContinueListening`, which keys on
+ * `session?.user.id` for the same reason.
  */
-export function favoriteQueryKey(target: FavoriteTarget): readonly [string, string, string] {
+export function favoriteQueryKey(
+  target: FavoriteTarget,
+  userId: string | null,
+): readonly [string, string | null, string, string] {
   if ("episodeId" in target) {
-    return ["favorites", "episode_id", target.episodeId] as const;
+    return ["favorites", userId, "episode_id", target.episodeId] as const;
   }
   if ("seriesId" in target) {
-    return ["favorites", "series_id", target.seriesId] as const;
+    return ["favorites", userId, "series_id", target.seriesId] as const;
   }
-  return ["favorites", "destination_id", target.destinationId] as const;
+  return ["favorites", userId, "destination_id", target.destinationId] as const;
 }

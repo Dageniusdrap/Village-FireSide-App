@@ -18,7 +18,11 @@ export function useToggleFavorite() {
   const mutation = useMutation<void, Error, ToggleVariables, ToggleContext>({
     mutationFn: async ({ target, isFavorited }) => {
       if (!session) {
-        return;
+        // Every current call site wraps `toggle(...)` in `useRequireAuth`'s
+        // `requireAuth(...)`, so this should be unreachable in practice —
+        // but it must throw, not return, so `onMutate`'s optimistic flip
+        // gets rolled back by `onError` instead of being left stuck.
+        throw new Error("Cannot toggle a favorite without a signed-in session");
       }
       const row = resolveFavoriteTarget(target);
       if (isFavorited) {
@@ -53,7 +57,7 @@ export function useToggleFavorite() {
       }
     },
     onMutate: async ({ target, isFavorited }) => {
-      const key = favoriteQueryKey(target);
+      const key = favoriteQueryKey(target, session?.user.id ?? null);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<boolean>(key);
       queryClient.setQueryData<boolean>(key, !isFavorited);
@@ -65,7 +69,9 @@ export function useToggleFavorite() {
       }
     },
     onSettled: (_data, _error, { target }) => {
-      void queryClient.invalidateQueries({ queryKey: favoriteQueryKey(target) });
+      void queryClient.invalidateQueries({
+        queryKey: favoriteQueryKey(target, session?.user.id ?? null),
+      });
     },
   });
 

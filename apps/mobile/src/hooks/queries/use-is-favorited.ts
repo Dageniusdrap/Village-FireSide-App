@@ -19,8 +19,8 @@ export function useIsFavorited(target: FavoriteTarget) {
         : (["destination_id", row.destination_id as string] as const);
 
   return useQuery({
-    queryKey: favoriteQueryKey(target),
-    enabled: session !== null,
+    queryKey: favoriteQueryKey(target, session?.user.id ?? null),
+    enabled: session !== null && Boolean(value),
     queryFn: async () => {
       if (!session) {
         return false;

@@ -28,28 +28,41 @@ describe("resolveFavoriteTarget", () => {
 
 describe("favoriteQueryKey", () => {
   it("builds an episode key", () => {
-    expect(favoriteQueryKey({ episodeId: "ep-1" })).toEqual(["favorites", "episode_id", "ep-1"]);
+    expect(favoriteQueryKey({ episodeId: "ep-1" }, "user-1")).toEqual([
+      "favorites",
+      "user-1",
+      "episode_id",
+      "ep-1",
+    ]);
   });
 
   it("builds a series key", () => {
-    expect(favoriteQueryKey({ seriesId: "series-1" })).toEqual([
+    expect(favoriteQueryKey({ seriesId: "series-1" }, "user-1")).toEqual([
       "favorites",
+      "user-1",
       "series_id",
       "series-1",
     ]);
   });
 
   it("builds a destination key", () => {
-    expect(favoriteQueryKey({ destinationId: "dest-1" })).toEqual([
+    expect(favoriteQueryKey({ destinationId: "dest-1" }, "user-1")).toEqual([
       "favorites",
+      "user-1",
       "destination_id",
       "dest-1",
     ]);
   });
 
   it("gives different targets of the same type different keys", () => {
-    expect(favoriteQueryKey({ seriesId: "series-1" })).not.toEqual(
-      favoriteQueryKey({ seriesId: "series-2" }),
+    expect(favoriteQueryKey({ seriesId: "series-1" }, "user-1")).not.toEqual(
+      favoriteQueryKey({ seriesId: "series-2" }, "user-1"),
+    );
+  });
+
+  it("gives different users of the same target different keys", () => {
+    expect(favoriteQueryKey({ seriesId: "series-1" }, "user-1")).not.toEqual(
+      favoriteQueryKey({ seriesId: "series-1" }, "user-2"),
     );
   });
 });

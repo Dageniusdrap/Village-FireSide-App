@@ -1,19 +1,17 @@
 // apps/mobile/src/components/ui/mini-player.tsx
-import { useSegments } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Card } from "@/components/ui/card";
 import { BottomTabInset, Spacing } from "@/constants/theme";
+import { useRouteSegments } from "@/hooks/use-route-segments";
 import { useTheme } from "@/hooks/use-theme";
 import { usePlayerStore } from "@/stores/player-store";
 
 export function MiniPlayer() {
   const theme = useTheme();
-  // Cast away expo-router's typed-routes tuple union — this only needs a
-  // plain membership check against the current route's segments.
-  const segments = useSegments() as readonly string[];
+  const segments = useRouteSegments();
   const insets = useSafeAreaInsets();
   const currentEpisode = usePlayerStore((state) => state.currentEpisode);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
