@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { AudioStatusDriver } from "@/components/audio-status-driver";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthListener } from "@/hooks/use-auth-listener";
 import { useConfigureAudioMode } from "@/hooks/use-configure-audio-mode";
@@ -88,6 +89,7 @@ export default function RootLayout() {
           <ThemedView style={styles.loadingContainer}>
             <ActivityIndicator />
           </ThemedView>
+          <AudioStatusDriver />
         </ThemeProvider>
       </QueryClientProvider>
     );
@@ -98,6 +100,7 @@ export default function RootLayout() {
       <ThemeProvider value={theme}>
         <AnimatedSplashOverlay />
         <Slot />
+        <AudioStatusDriver />
       </ThemeProvider>
     </QueryClientProvider>
   );

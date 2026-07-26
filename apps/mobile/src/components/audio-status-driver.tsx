@@ -93,5 +93,19 @@ export function AudioStatusDriver() {
     }
   }, [status.didJustFinish, sleepTimer.mode, next, cancelSleepTimer]);
 
+  // expo-audio's AudioStatus.error is set when something goes wrong
+  // mid-playback (an expired signed URL, a network drop, a decode
+  // failure) — with nothing watching it, the UI would just show "paused"
+  // forever with no explanation. Edge-detected the same way didJustFinish
+  // is above, so the toast only fires once per new error rather than on
+  // every ~500ms status tick while the same error string persists.
+  const lastErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (status.error && status.error !== lastErrorRef.current) {
+      usePlayerStore.setState({ toastMessage: "Playback error — try again." });
+    }
+    lastErrorRef.current = status.error;
+  }, [status.error]);
+
   return null;
 }

@@ -82,6 +82,16 @@ title/artist/artwork), and `setAudioModeAsync()` (background playback +
 interruption modes) — enough to cover Prompt 8's full requirement set
 without a pre-release dependency.
 
+This section is only about why the `expo-audio` _package_ was chosen over
+`react-native-track-player` — it is not a statement of which of that
+package's two playback primitives Prompt 8 ended up using.
+`AudioPlaylist` turned out to have no lock-screen/Now-Playing metadata
+support at all, so the feature is built on a single, manually-queued
+`AudioPlayer` instead; see
+`docs/superpowers/specs/2026-07-26-audio-player-design.md`'s "State
+architecture" section for the full reasoning. Don't reach for
+`AudioPlaylist` based on this doc alone.
+
 ## Adding a new app to the monorepo
 
 A few non-obvious wiring steps are required for a new app to build and

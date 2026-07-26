@@ -9,10 +9,14 @@ import { useEffect } from "react";
 // "Interruption handling" section for the verified reasoning.
 export function useConfigureAudioMode() {
   useEffect(() => {
-    void setAudioModeAsync({
+    setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
       interruptionMode: "doNotMix",
+    }).catch((error: unknown) => {
+      // A startup failure here means no lock-screen controls at all —
+      // worth a console warning instead of failing completely silently.
+      console.warn("Failed to configure audio mode:", error);
     });
   }, []);
 }

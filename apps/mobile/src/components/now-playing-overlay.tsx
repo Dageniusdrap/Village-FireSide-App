@@ -1,7 +1,7 @@
 // apps/mobile/src/components/now-playing-overlay.tsx
 import { Image } from "expo-image";
 import { useAudioPlayerStatus } from "expo-audio";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   PanResponder,
@@ -62,32 +62,69 @@ export function NowPlayingOverlay() {
   const [dragFraction, setDragFraction] = useState<number | null>(null);
   const trackWidthRef = useRef(0);
 
+  // panHandlers is memoized (seekTo is a stable zustand action reference,
+  // so this effectively only runs once) and spread into the track view's
+  // JSX every render, per React Native's documented PanResponder idiom
+  // (https://reactnative.dev/docs/panresponder). The handlers below read
+  // live data via statusRef/trackWidthRef rather than closed-over
+  // render-time values, so they stay correct even though the responder
+  // itself isn't recreated on every render.
+  //
+  // Fractions are computed from `event.nativeEvent.locationX` — coordinates
+  // relative to the view that owns the responder (the track) — not
+  // `gestureState.moveX`, which is screen-absolute and would be off by the
+  // track's horizontal offset within the padded content. `locationX` is
+  // also valid on the very first callback (grant), unlike `moveX`, which is
+  // only populated once a move event has fired; that's what lets a plain
+  // tap-and-release seek to the tapped position instead of falling back to
+  // 0. Mirrors MiniPlayer's `handleTrackPress` locationX-based tap-to-seek.
+  //
   // react-hooks/refs (a React Compiler-oriented rule shipped in
-  // eslint-plugin-react-hooks) flags this as a ref read during render, but
-  // it's React Native's own documented PanResponder idiom
-  // (https://reactnative.dev/docs/panresponder): the responder must be
-  // created once via useRef and its `panHandlers` spread into JSX every
-  // render. There's no ref-free way to do this with PanResponder.
+  // eslint-plugin-react-hooks) flags the closures below for referencing
+  // trackWidthRef/statusRef inside a function created during render (the
+  // useMemo factory). The closures only ever read `.current` inside their
+  // own event-handler bodies — never during render itself — which is
+  // React Native's own documented PanResponder idiom
+  // (https://reactnative.dev/docs/panresponder); there's no ref-free way
+  // to do this with PanResponder.
   /* eslint-disable react-hooks/refs */
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_event, gesture) => {
-        if (trackWidthRef.current <= 0) {
-          return;
-        }
-        const fraction = Math.min(1, Math.max(0, gesture.moveX / trackWidthRef.current));
-        setDragFraction(fraction);
-      },
-      onPanResponderRelease: (_event, gesture) => {
-        if (trackWidthRef.current > 0 && statusRef.current.duration > 0) {
-          const fraction = Math.min(1, Math.max(0, gesture.moveX / trackWidthRef.current));
-          seekTo(fraction * statusRef.current.duration);
-        }
-        setDragFraction(null);
-      },
-    }),
-  ).current;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => {
+          if (trackWidthRef.current <= 0) {
+            return;
+          }
+          const fraction = Math.min(
+            1,
+            Math.max(0, event.nativeEvent.locationX / trackWidthRef.current),
+          );
+          setDragFraction(fraction);
+        },
+        onPanResponderMove: (event) => {
+          if (trackWidthRef.current <= 0) {
+            return;
+          }
+          const fraction = Math.min(
+            1,
+            Math.max(0, event.nativeEvent.locationX / trackWidthRef.current),
+          );
+          setDragFraction(fraction);
+        },
+        onPanResponderRelease: (event) => {
+          if (trackWidthRef.current > 0 && statusRef.current.duration > 0) {
+            const fraction = Math.min(
+              1,
+              Math.max(0, event.nativeEvent.locationX / trackWidthRef.current),
+            );
+            seekTo(fraction * statusRef.current.duration);
+          }
+          setDragFraction(null);
+        },
+      }),
+    [seekTo],
+  );
   /* eslint-enable react-hooks/refs */
 
   if (!currentEpisode) {
@@ -143,9 +180,8 @@ export function NowPlayingOverlay() {
             </ThemedText>
           ) : null}
 
-          {/* eslint-disable-next-line react-hooks/refs -- spreading panHandlers during render is PanResponder's required usage; see note above panResponder's definition */}
-          <View style={styles.scrubberSection} {...panResponder.panHandlers}>
-            <View style={styles.track} onLayout={handleTrackLayout}>
+          <View style={styles.scrubberSection}>
+            <View style={styles.track} onLayout={handleTrackLayout} {...panResponder.panHandlers}>
               <View style={[styles.trackBackground, { backgroundColor: theme.border }]} />
               <View
                 style={[
