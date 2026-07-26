@@ -15,6 +15,7 @@ import { ActivityIndicator, StyleSheet, useColorScheme } from "react-native";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthListener } from "@/hooks/use-auth-listener";
+import { useConfigureAudioMode } from "@/hooks/use-configure-audio-mode";
 import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
 import { useRouteSegments } from "@/hooks/use-route-segments";
 import { resolveAuthRedirect } from "@/lib/auth-redirect";
@@ -29,6 +30,7 @@ export default function RootLayout() {
   const segments = useRouteSegments();
   useAuthListener();
   useRecoveryLinkHandler();
+  useConfigureAudioMode();
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
