@@ -37,7 +37,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
