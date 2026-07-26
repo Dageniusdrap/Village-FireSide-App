@@ -5,7 +5,8 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { Lora_600SemiBold } from "@expo-google-fonts/lora";
-import { DarkTheme, DefaultTheme, Redirect, Slot, ThemeProvider } from "expo-router";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { DarkTheme, DefaultTheme, Slot, ThemeProvider, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -15,12 +16,17 @@ import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthListener } from "@/hooks/use-auth-listener";
 import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
+import { useRouteSegments } from "@/hooks/use-route-segments";
+import { resolveAuthRedirect } from "@/lib/auth-redirect";
+import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth-store";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+  const segments = useRouteSegments();
   useAuthListener();
   useRecoveryLinkHandler();
 
@@ -43,27 +49,55 @@ export default function RootLayout() {
     }
   }, [loading, fontsLoaded]);
 
+  // Route-guard as an effect gated on `segments`, not an unconditionally
+  // rendered <Redirect>: a bare <Redirect href="/"> re-fires on every
+  // re-render of this layout (expo-router's Redirect wraps a fresh
+  // useFocusEffect callback each render, so its dependency array never
+  // settles) — including re-renders this layout receives for reasons
+  // unrelated to auth (a token-refresh replacing the `session` object, a
+  // colorScheme change). With the Slot-only layout that was invisible; once
+  // (app) got a <Stack> with real drill-down screens, it meant a signed-in
+  // user reading a Series/Contributor/Cultural-Group screen could get
+  // silently bounced back to Home. `resolveAuthRedirect` (tested in
+  // isolation) makes the navigation a no-op whenever the user is already
+  // somewhere valid — including a guest who deliberately navigated to
+  // /sign-in from a SignInPromptSheet.
+  useEffect(() => {
+    if (loading || !fontsLoaded) {
+      return;
+    }
+    const href = resolveAuthRedirect({
+      session: session !== null,
+      guestMode,
+      passwordRecovery,
+      segments,
+    });
+    if (href) {
+      router.replace(href);
+    }
+  }, [loading, fontsLoaded, session, guestMode, passwordRecovery, segments, router]);
+
   const theme = colorScheme === "dark" ? DarkTheme : DefaultTheme;
 
   if (loading || !fontsLoaded) {
     return (
-      <ThemeProvider value={theme}>
-        <ThemedView style={styles.loadingContainer}>
-          <ActivityIndicator />
-        </ThemedView>
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider value={theme}>
+          <ThemedView style={styles.loadingContainer}>
+            <ActivityIndicator />
+          </ThemedView>
+        </ThemeProvider>
+      </QueryClientProvider>
     );
   }
 
   return (
-    <ThemeProvider value={theme}>
-      <AnimatedSplashOverlay />
-      {!session && !guestMode && <Redirect href="/welcome" />}
-      {session && passwordRecovery && <Redirect href="/reset-password" />}
-      {session && !passwordRecovery && <Redirect href="/" />}
-      {!session && guestMode && <Redirect href="/" />}
-      <Slot />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider value={theme}>
+        <AnimatedSplashOverlay />
+        <Slot />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

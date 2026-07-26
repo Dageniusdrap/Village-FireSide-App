@@ -28,7 +28,13 @@ export default function WelcomeScreen() {
           <ThemedText type="linkPrimary">Create Account</ThemedText>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={continueAsGuest}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            continueAsGuest();
+            router.replace("/");
+          }}
+        >
           <ThemedText type="link">Continue as Guest</ThemedText>
         </Pressable>
       </SafeAreaView>

@@ -1,14 +1,18 @@
 // apps/mobile/src/components/ui/mini-player.tsx
 import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Card } from "@/components/ui/card";
 import { BottomTabInset, Spacing } from "@/constants/theme";
+import { useRouteSegments } from "@/hooks/use-route-segments";
 import { useTheme } from "@/hooks/use-theme";
 import { usePlayerStore } from "@/stores/player-store";
 
 export function MiniPlayer() {
   const theme = useTheme();
+  const segments = useRouteSegments();
+  const insets = useSafeAreaInsets();
   const currentEpisode = usePlayerStore((state) => state.currentEpisode);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const play = usePlayerStore((state) => state.play);
@@ -19,8 +23,17 @@ export function MiniPlayer() {
     return null;
   }
 
+  // MiniPlayer is rendered once, as a sibling of the (app) Stack, so it
+  // persists across every screen the stack navigates to — including the
+  // Series/Contributor/Cultural-Group detail routes, which have no tab bar
+  // beneath them. `BottomTabInset` only makes sense above an actual tab
+  // bar; elsewhere, rest just above the safe-area edge instead of leaving a
+  // dead gap where the (nonexistent) tab bar would have been.
+  const isInTabs = segments.includes("(tabs)");
+  const bottomOffset = isInTabs ? BottomTabInset : insets.bottom + Spacing.two;
+
   return (
-    <Pressable style={[styles.container, { bottom: BottomTabInset }]} onPress={expand}>
+    <Pressable style={[styles.container, { bottom: bottomOffset }]} onPress={expand}>
       <Card style={styles.card}>
         <View style={[styles.artworkPlaceholder, { backgroundColor: theme.accentSoft }]} />
         <ThemedText type="small" style={styles.title} numberOfLines={1}>

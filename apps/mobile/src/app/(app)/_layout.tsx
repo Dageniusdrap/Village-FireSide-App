@@ -1,4 +1,4 @@
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { MiniPlayer } from "@/components/ui/mini-player";
@@ -6,7 +6,12 @@ import { MiniPlayer } from "@/components/ui/mini-player";
 export default function AppLayout() {
   return (
     <View style={styles.container}>
-      <Slot />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="series/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="contributor/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="cultural-group/[id]" options={{ headerShown: false }} />
+      </Stack>
       <MiniPlayer />
     </View>
   );
