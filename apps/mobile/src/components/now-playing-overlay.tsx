@@ -1,7 +1,7 @@
 // apps/mobile/src/components/now-playing-overlay.tsx
 import { Image } from "expo-image";
 import { useAudioPlayerStatus } from "expo-audio";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Modal,
   PanResponder,
@@ -49,6 +49,10 @@ export function NowPlayingOverlay() {
   const sleepTimer = usePlayerStore((state) => state.sleepTimer);
 
   const status = useAudioPlayerStatus(audioPlayer);
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const { requireAuth, promptVisible, dismissPrompt } = useRequireAuth();
   const { createBookmark } = useCreateBookmark();
   const contributorQuery = useEpisodeContributor(currentEpisode?.id ?? null);
@@ -76,9 +80,9 @@ export function NowPlayingOverlay() {
         setDragFraction(fraction);
       },
       onPanResponderRelease: (_event, gesture) => {
-        if (trackWidthRef.current > 0 && status.duration > 0) {
+        if (trackWidthRef.current > 0 && statusRef.current.duration > 0) {
           const fraction = Math.min(1, Math.max(0, gesture.moveX / trackWidthRef.current));
-          seekTo(fraction * status.duration);
+          seekTo(fraction * statusRef.current.duration);
         }
         setDragFraction(null);
       },
