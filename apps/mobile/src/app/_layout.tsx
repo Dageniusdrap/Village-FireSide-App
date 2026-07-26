@@ -1,18 +1,60 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { DarkTheme, DefaultTheme, Redirect, Slot, ThemeProvider } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, useColorScheme } from "react-native";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { ThemedView } from "@/components/themed-view";
+import { useAuthListener } from "@/hooks/use-auth-listener";
+import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
+import { useAuthStore } from "@/stores/auth-store";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
+  useAuthListener();
+  useRecoveryLinkHandler();
+
+  const loading = useAuthStore((state) => state.loading);
+  const session = useAuthStore((state) => state.session);
+  const guestMode = useAuthStore((state) => state.guestMode);
+  const passwordRecovery = useAuthStore((state) => state.passwordRecovery);
+
+  useEffect(() => {
+    if (!loading) {
+      SplashScreen.hideAsync();
+    }
+  }, [loading]);
+
+  const theme = colorScheme === "dark" ? DarkTheme : DefaultTheme;
+
+  if (loading) {
+    return (
+      <ThemeProvider value={theme}>
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator />
+        </ThemedView>
+      </ThemeProvider>
+    );
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={theme}>
       <AnimatedSplashOverlay />
-      <AppTabs />
+      {!session && !guestMode && <Redirect href="/welcome" />}
+      {session && passwordRecovery && <Redirect href="/reset-password" />}
+      {session && !passwordRecovery && <Redirect href="/" />}
+      {!session && guestMode && <Redirect href="/" />}
+      <Slot />
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
