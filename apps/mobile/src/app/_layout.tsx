@@ -17,8 +17,10 @@ import { AudioStatusDriver } from "@/components/audio-status-driver";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthListener } from "@/hooks/use-auth-listener";
 import { useConfigureAudioMode } from "@/hooks/use-configure-audio-mode";
+import { useConfigurePurchases } from "@/hooks/use-configure-purchases";
 import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
 import { useRouteSegments } from "@/hooks/use-route-segments";
+import { useSyncPurchasesIdentity } from "@/hooks/use-sync-purchases-identity";
 import { resolveAuthRedirect } from "@/lib/auth-redirect";
 import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth-store";
@@ -32,6 +34,8 @@ export default function RootLayout() {
   useAuthListener();
   useRecoveryLinkHandler();
   useConfigureAudioMode();
+  useConfigurePurchases();
+  useSyncPurchasesIdentity();
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
