@@ -106,6 +106,18 @@ directly.
 - **Admin full access** (`episode_contributors_admin_all`): same
   `is_admin()` pattern as the content tables.
 
+### `plays`
+
+- **Owner select** (`plays_select_own`): `auth.uid() = user_id` — a
+  signed-in user can see their own play history. Guest plays
+  (`user_id` null) aren't visible to anyone except admins.
+- **Admin full access** (`plays_admin_all`): `is_admin()` on all
+  operations.
+- **No insert/update/delete policy for anon/authenticated** — every row
+  is written by the `get-episode-audio` Edge Function using the service
+  role, which bypasses RLS entirely. Same pattern Prompt 2 established
+  for `unlocks` and `transactions`.
+
 ### `cultural_groups`, `series_cultural_groups`, `contributor_cultural_groups`
 
 - **Public select** (`cultural_groups_select_published`): rows where
