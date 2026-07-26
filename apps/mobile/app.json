@@ -43,7 +43,8 @@
         {
           "enableBackgroundPlayback": true,
           "enableBackgroundRecording": false,
-          "recordAudioAndroid": false
+          "recordAudioAndroid": false,
+          "microphonePermission": false
         }
       ]
     ],
