@@ -1,3 +1,5 @@
+-- supabase/migrations/20260726110000_episode_bookmarks.sql
+
 create table episode_bookmarks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles (id) on delete cascade,
