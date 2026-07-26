@@ -50,6 +50,7 @@ type EpisodeContributorRow = {
 export function useContributorDetail(id: string) {
   return useQuery({
     queryKey: ["contributor-detail", id],
+    enabled: Boolean(id),
     queryFn: async (): Promise<ContributorDetail> => {
       const { data: contributor, error: contributorError } = await supabase
         .from("public_contributors")

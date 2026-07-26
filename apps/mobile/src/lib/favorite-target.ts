@@ -16,3 +16,18 @@ export function resolveFavoriteTarget(target: FavoriteTarget): FavoriteRow {
   }
   return { episode_id: null, series_id: null, destination_id: target.destinationId };
 }
+
+/**
+ * Shared TanStack Query key for a single favorite target, so the read hook
+ * (`useIsFavorited`) and the mutation's optimistic cache update
+ * (`useToggleFavorite`) always agree on the same key for the same target.
+ */
+export function favoriteQueryKey(target: FavoriteTarget): readonly [string, string, string] {
+  if ("episodeId" in target) {
+    return ["favorites", "episode_id", target.episodeId] as const;
+  }
+  if ("seriesId" in target) {
+    return ["favorites", "series_id", target.seriesId] as const;
+  }
+  return ["favorites", "destination_id", target.destinationId] as const;
+}

@@ -1,21 +1,22 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 
-import { resolveFavoriteTarget, type FavoriteTarget } from "@/lib/favorite-target";
+import {
+  favoriteQueryKey,
+  resolveFavoriteTarget,
+  type FavoriteTarget,
+} from "@/lib/favorite-target";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth-store";
+
+type ToggleVariables = { target: FavoriteTarget; isFavorited: boolean };
+type ToggleContext = { key: QueryKey; previous: boolean | undefined };
 
 export function useToggleFavorite() {
   const queryClient = useQueryClient();
   const session = useAuthStore((state) => state.session);
 
-  const mutation = useMutation({
-    mutationFn: async ({
-      target,
-      isFavorited,
-    }: {
-      target: FavoriteTarget;
-      isFavorited: boolean;
-    }) => {
+  const mutation = useMutation<void, Error, ToggleVariables, ToggleContext>({
+    mutationFn: async ({ target, isFavorited }) => {
       if (!session) {
         return;
       }
@@ -51,8 +52,20 @@ export function useToggleFavorite() {
         }
       }
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    onMutate: async ({ target, isFavorited }) => {
+      const key = favoriteQueryKey(target);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<boolean>(key);
+      queryClient.setQueryData<boolean>(key, !isFavorited);
+      return { key, previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+    },
+    onSettled: (_data, _error, { target }) => {
+      void queryClient.invalidateQueries({ queryKey: favoriteQueryKey(target) });
     },
   });
 

@@ -47,6 +47,7 @@ type SeriesDetailRow = {
 export function useSeriesDetail(id: string) {
   return useQuery({
     queryKey: ["series-detail", id],
+    enabled: Boolean(id),
     queryFn: async (): Promise<SeriesDetail> => {
       const { data, error } = await supabase
         .from("series")

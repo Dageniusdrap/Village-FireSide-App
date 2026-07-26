@@ -47,6 +47,7 @@ type PublicContributorRow = {
 export function useCulturalGroupDetail(id: string) {
   return useQuery({
     queryKey: ["cultural-group-detail", id],
+    enabled: Boolean(id),
     queryFn: async (): Promise<CulturalGroupDetail> => {
       const { data: group, error: groupError } = await supabase
         .from("cultural_groups")

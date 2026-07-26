@@ -1,8 +1,10 @@
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
+import { BackButton } from "@/components/ui/back-button";
 import { DestinationCard } from "@/components/ui/destination-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -19,6 +21,7 @@ export default function CulturalGroupDetailScreen() {
   if (query.isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <BackButton />
         <Skeleton width="100%" height={200} />
       </SafeAreaView>
     );
@@ -27,6 +30,7 @@ export default function CulturalGroupDetailScreen() {
   if (query.isError || !query.data) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <BackButton />
         <EmptyState title="Not found" body="This culture's page isn't available right now." />
       </SafeAreaView>
     );
@@ -36,7 +40,11 @@ export default function CulturalGroupDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <BackButton />
       <ScrollView contentContainerStyle={styles.content}>
+        {group.coverImageUrl ? (
+          <Image source={{ uri: group.coverImageUrl }} style={styles.cover} contentFit="cover" />
+        ) : null}
         <ThemedText type="title">{group.name}</ThemedText>
         {group.country || group.region ? (
           <ThemedText type="small" themeColor="textSecondary">
@@ -102,6 +110,11 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.four,
     gap: Spacing.three,
+  },
+  cover: {
+    width: "100%",
+    height: 200,
+    borderRadius: Spacing.two,
   },
   row: {
     gap: Spacing.three,

@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
+import { BackButton } from "@/components/ui/back-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
@@ -17,6 +18,7 @@ export default function ContributorProfileScreen() {
   if (query.isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <BackButton />
         <Skeleton width="100%" height={200} />
       </SafeAreaView>
     );
@@ -25,6 +27,7 @@ export default function ContributorProfileScreen() {
   if (query.isError || !query.data) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <BackButton />
         <EmptyState
           title="Not found"
           body="This storyteller's profile isn't available right now."
@@ -37,6 +40,7 @@ export default function ContributorProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <BackButton />
       <ScrollView contentContainerStyle={styles.content}>
         {contributor.photoUrl ? (
           <Image source={{ uri: contributor.photoUrl }} style={styles.photo} contentFit="cover" />

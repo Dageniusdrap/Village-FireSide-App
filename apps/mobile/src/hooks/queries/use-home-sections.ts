@@ -152,6 +152,7 @@ export function useCulturalGroups() {
         .from("cultural_groups")
         .select("id, name, description, country, region, cover_image_url")
         .eq("is_published", true)
+        .order("name", { ascending: true })
         .returns<CulturalGroupRow[]>();
       if (error) {
         throw error;
@@ -185,6 +186,8 @@ export function useStorytellers() {
       const { data, error } = await supabase
         .from("public_contributors")
         .select("id, display_name, contributor_type, bio, photo_url, district, country")
+        .order("display_name", { ascending: true })
+        .limit(20)
         .returns<PublicContributorRow[]>();
       if (error) {
         throw error;
