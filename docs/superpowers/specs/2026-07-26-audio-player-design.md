@@ -72,38 +72,108 @@ of adding any native audio module.
 
 ## State architecture
 
-`expo-audio`'s `AudioPlaylist` is the source of truth for playback
-state (queue, position, playing/paused, rate) — not the Zustand store.
+**Correction (2026-07-26, before implementation started):** this
+section originally specified `expo-audio`'s `AudioPlaylist` as the
+playback engine. Pulling the actual versioned SDK 57 API reference
+(per `apps/mobile/AGENTS.md`'s "Expo has changed" rule) before writing
+any code found that `AudioPlaylist` has **no lock-screen/Now-Playing
+metadata support at all** — `setActiveForLockScreen()` is documented
+only on the single-track `AudioPlayer` class, and there is no way to
+retrieve an underlying `AudioPlayer` from an `AudioPlaylist`. Since
+lock-screen controls are an explicit, non-negotiable requirement of
+this prompt, building on `AudioPlaylist` would have shipped a feature
+that silently can't meet its own spec. The corrected design below uses
+a single `AudioPlayer` with a manually-managed queue instead.
+`docs/architecture.md`'s "Mobile audio" section's mention of
+`AudioPlaylist` predates this correction and refers only to why
+`expo-audio` as a _package_ was chosen over
+`react-native-track-player` — not to which of its two playback
+primitives this feature ends up using.
+
+A single `AudioPlayer` instance (`Audio.createAudioPlayer()` — a
+non-auto-releasing player, appropriate for a module-scoped singleton;
+this is distinct from the auto-releasing player the `useAudioPlayer()`
+hook returns) is the source of truth for the _currently loaded track's_
+playback state (position, playing/paused, rate). Everything about the
+_queue_ — which episodes, in what order, which index is current — is
+state `expo-audio` has no concept of, so it lives in the Zustand store
+alongside the UI-only state:
 `apps/mobile/src/stores/player-store.ts` is rewritten from its current
-stub (which owns `currentEpisode`/`isPlaying` itself) into a much
-thinner store holding only state `expo-audio` doesn't know about:
+stub (which owns `currentEpisode`/`isPlaying` itself) into a store that
+owns the queue and every playback action, calling into the singleton
+`AudioPlayer` internally — mirroring `auth-store.ts`'s existing pattern
+of a store owning side-effecting actions (`signOut()` calling
+`supabase.auth.signOut()`), rather than introducing a second
+"stores own side effects vs. don't" convention:
 
 ```ts
+type QueueEpisode = SeriesDetailEpisode & {
+  seriesId: string;
+  seriesTitle: string;
+  coverImageUrl: string | null;
+};
+
+type SleepTimerState =
+  | { mode: "off" }
+  | { mode: "timer"; minutes: 10 | 20 | 30 | 45; cancel: () => void }
+  | { mode: "end-of-episode" };
+
 type PlayerState = {
+  queue: QueueEpisode[];
+  currentIndex: number;
+  currentEpisode: QueueEpisode | null; // queue[currentIndex], kept denormalized for cheap selector reads
   expanded: boolean; // Now Playing overlay visibility
-  seriesId: string | null; // which series' queue is loaded
-  sleepTimer: SleepTimerState; // see "Sleep timer" below
-  lockedEpisode: SeriesDetailEpisode | null; // drives the stub Unlock Sheet
+  sleepTimer: SleepTimerState;
+  lockedEpisode: QueueEpisode | null; // drives the stub Unlock Sheet
+  toastMessage: string | null; // "couldn't load the next episode" etc.
+
+  playQueue: (
+    episodes: QueueEpisode[],
+    startIndex: number,
+    startPositionOverrideSeconds?: number,
+  ) => Promise<void>;
+  playPause: () => void;
+  seekBy: (deltaSeconds: number) => void;
+  seekTo: (seconds: number) => void;
+  next: () => Promise<void>;
+  previous: () => Promise<void>;
+  setPlaybackRate: (rate: number) => void;
   expand: () => void;
   collapse: () => void;
-  showLockedEpisode: (episode: SeriesDetailEpisode) => void;
   dismissLockedEpisode: () => void;
+  startSleepTimer: (option: SleepTimerOption) => void;
+  cancelSleepTimer: () => void;
+  dismissToast: () => void;
 };
 ```
 
 `MiniPlayer` and the Now Playing overlay both read live playback state
-via `useAudioPlaylistStatus(playlist)` directly (real-time `playing`,
-`currentTime`, `duration`, `currentIndex`) — not through the store. This
-keeps "what's actually playing" from drifting out of sync with
-lock-screen-triggered changes, which is the standard failure mode of
-mirroring native player state into a separate app-owned store instead of
-subscribing to it.
+via `useAudioPlayerStatus(audioPlayer)` directly (real-time `playing`,
+`currentTime`, `duration`) — not through the store. This keeps "what's
+actually playing" from drifting out of sync with lock-screen-triggered
+changes, which is the standard failure mode of mirroring native player
+state into a separate app-owned store instead of subscribing to it.
+Queue/episode metadata (title, artwork, which index) has no native
+equivalent to subscribe to, so components read that from the store as
+normal reactive Zustand state.
 
-The `AudioPlaylist` instance itself lives in a singleton module
-(`apps/mobile/src/lib/audio-playlist.ts`, mirroring `query-client.ts`'s
+The `AudioPlayer` instance itself lives in a singleton module
+(`apps/mobile/src/lib/audio-player.ts`, mirroring `query-client.ts`'s
 existing singleton pattern), not inside a component — playback must
 survive screen navigation and app backgrounding, so it can't be
-component-scoped state.
+component-scoped state. The module is intentionally minimal — it only
+constructs and exports the player; all queue logic lives in the store
+so there is exactly one place that owns "what plays next."
+
+Because no native event fires when a track finishes or a periodic tick
+elapses, one always-mounted, render-nothing component
+(`apps/mobile/src/components/audio-status-driver.tsx`, mounted
+alongside `<MiniPlayer />` in `(app)/_layout.tsx`) subscribes to
+`useAudioPlayerStatus(audioPlayer)` and is the sole place driving:
+the 15-second position-save tick, saving on a playing→paused
+transition, saving on `AppState` leaving `"active"`, and calling the
+store's `next()` (or pausing, for the "end of episode" sleep option)
+when `status.didJustFinish` edges from `false` to `true`.
 
 ## Audio source resolution (the Prompt 10 hook point)
 
@@ -145,7 +215,7 @@ export async function getLocalDownloadPath(_episodeId: string): Promise<string |
 
 | Response | `EpisodeSourceResult`     | Queue-building behavior                                                                   |
 | -------- | ------------------------- | ----------------------------------------------------------------------------------------- |
-| 200      | `{ type: "remote", url }` | Load into the playlist, play                                                              |
+| 200      | `{ type: "remote", url }` | Load into the player (`audioPlayer.replace(...)`), play                                   |
 | 403      | `{ type: "locked" }`      | Stop auto-advance; `showLockedEpisode(episode)` opens the stub Unlock Sheet               |
 | 404      | `{ type: "not_found" }`   | Skip silently — call `resolveEpisodeSource` on the episode after it                       |
 | 400/500  | `{ type: "error" }`       | Surface a dismissable "couldn't load the next episode" toast; current track keeps playing |
@@ -158,31 +228,51 @@ or an error.
 
 ## Position persistence
 
-`useAudioPlaylistStatus(playlist)` drives both the Now Playing scrubber
-and a 15-second save tick (`useEffect` + `setInterval` keyed off
-`status.currentTime`, matching this prompt's own "every 15 seconds"
-requirement — `expo-audio` has no built-in interval-based progress-save
+`useAudioPlayerStatus(audioPlayer)` drives both the Now Playing scrubber
+and a 15-second save tick, implemented in the `AudioStatusDriver`
+component described above (`useEffect` + `setInterval`, reading the
+latest status off a ref rather than depending on `status.currentTime`
+directly, so the interval isn't torn down and rebuilt on every ~500ms
+status update — matching this prompt's own "every 15 seconds"
+requirement; `expo-audio` has no built-in interval-based progress-save
 hook the way this needs).
 
 Every tick, pause, and app background/kill writes to a local JSON file
-via `expo-file-system` **immediately and unconditionally** — guest or
-signed-in:
+via `expo-file-system`'s SDK-57 class-based API (`File`/`Paths` —
+**not** the deprecated `expo-file-system/legacy` string-URI API the
+first draft of this spec assumed) **immediately and unconditionally**
+— guest or signed-in:
 
 ```ts
 // apps/mobile/src/lib/local-listening-progress.ts
+import { File, Paths } from "expo-file-system";
+
 type LocalProgress = { positionSeconds: number; updatedAt: string };
 
-export async function writeLocalProgress(episodeId: string, positionSeconds: number): Promise<void>;
-export async function readLocalProgress(episodeId: string): Promise<LocalProgress | null>;
+const progressFile = new File(Paths.document, "listening-progress.json");
+
+export function writeLocalProgress(episodeId: string, positionSeconds: number): void;
+export function readLocalProgress(episodeId: string): LocalProgress | null;
+// resolveResumePosition is a pure function (unit-testable, no file I/O)
+// used by both playQueue() and the Library bookmark tap-to-open flow.
+export function resolveResumePosition(
+  local: LocalProgress | null,
+  server: { positionSeconds: number; updatedAt: string } | null,
+): number;
 ```
 
-Backed by one file (`FileSystem.documentDirectory + "listening-progress.json"`,
-`{ [episodeId]: LocalProgress }`), read-modify-written on each call.
-Only signed-in users additionally upsert to `listening_progress`
-(`.upsert({ user_id, episode_id, position_seconds, completed }, { onConflict: "user_id,episode_id" })`
-— a real composite-PK upsert, unlike `favorites`' partial-index
-workaround from Prompt 7, since `listening_progress`'s primary key is
-the plain `(user_id, episode_id)` pair).
+Backed by one file (`new File(Paths.document, "listening-progress.json")`,
+content `{ [episodeId]: LocalProgress }`), read via `progressFile.exists`
+
+- `progressFile.textSync()` (empty object if the file doesn't exist
+  yet) and written via `progressFile.create()` (only if `!exists`) +
+  `progressFile.write(JSON.stringify(data))` — both synchronous in the
+  new API, so no `async`/`await` needed for the local half of a save.
+  Only signed-in users additionally upsert to `listening_progress`
+  (`.upsert({ user_id, episode_id, position_seconds, completed }, { onConflict: "user_id,episode_id" })`
+  — a real composite-PK upsert, unlike `favorites`' partial-index
+  workaround from Prompt 7, since `listening_progress`'s primary key is
+  the plain `(user_id, episode_id)` pair).
 
 On opening an episode, resume position = whichever of local/server is
 newer by `updated_at` — a stale server row (e.g. progress made on
@@ -208,7 +298,7 @@ issue on a closely related interruption-recovery code path
 handling with the `shouldResume` hint) both point at this being fragile
 rather than guaranteed.
 
-The design does not depend on auto-resume working. `useAudioPlaylistStatus`
+The design does not depend on auto-resume working. `useAudioPlayerStatus`
 is the only source of truth for `playing`/`paused`, and the UI (MiniPlayer,
 Now Playing, lock screen) always reflects whatever that status actually
 is. If the interruption ends and playback silently resumes on its own,
@@ -233,21 +323,24 @@ Continues the existing `expanded`/`collapse` store pattern from Prompt 6
   have several contributors; only the first is shown, matching the
   prompt pack's single-name example). No contributor row → the line is
   omitted, not shown empty.
-- Scrubber bound to `useAudioPlaylistStatus`'s `currentTime`/`duration`,
-  calling `player.seekTo(seconds)` on drag-end
-- ±15s (`seekTo(currentTime ± 15)`), next/previous
-  (`playlist.next()`/`playlist.previous()`), play/pause
-- Speed selector: 0.8×/1×/1.25×/1.5×/2× via `player.playbackRate`
+- Scrubber bound to `useAudioPlayerStatus(audioPlayer)`'s
+  `currentTime`/`duration`, calling the store's `seekTo(seconds)` on
+  drag-end (which calls `audioPlayer.seekTo(seconds)`)
+- ±15s (store's `seekBy(±15)`), next/previous (store's `next()`/
+  `previous()`), play/pause (store's `playPause()`)
+- Speed selector: 0.8×/1×/1.25×/1.5×/2× via the store's
+  `setPlaybackRate(rate)` (sets `audioPlayer.playbackRate`)
 - Bookmark button, gated behind `useRequireAuth`'s `requireAuth(...)`
   (same pattern as Prompt 7's favoriting) — captures
   `{ episodeId, positionSeconds: status.currentTime }` plus an optional
-  note
+  note, via a small `BookmarkSheet` modal (mirrors
+  `SignInPromptSheet`'s structure) with an optional-note text input
 - Sleep-timer entry point (opens a small picker: 10/20/30/45 min, "end
   of episode", "off")
 
 `MiniPlayer` itself becomes fully wired: real `playing` state from
-`useAudioPlaylistStatus`, a real tappable progress bar, instead of the
-current visual-only stub.
+`useAudioPlayerStatus(audioPlayer)`, a real tappable progress bar,
+instead of the current visual-only stub.
 
 ## Sleep timer
 
@@ -261,9 +354,10 @@ export function startSleepTimer(option: SleepTimerOption, onFire: () => void): (
 ```
 
 A numeric option sets a single `setTimeout` calling `onFire` (which the
-store wires to `player.pause()`). `"end-of-episode"` is not a timer at
-all — it's a one-shot flag checked in the `AudioPlaylist`'s
-track-changed listener, calling `player.pause()` instead of advancing
+store wires to `audioPlayer.pause()`). `"end-of-episode"` is not a timer
+at all — it's a one-shot `sleepTimer.mode === "end-of-episode"` check
+inside `AudioStatusDriver`'s `didJustFinish`-edge handler (see "State
+architecture" above), pausing instead of calling the store's `next()`
 when the current track ends. Because `expo-audio`'s background playback
 keeps the app process alive while audio is actively playing, a plain
 `setTimeout` fires reliably whether the screen is on or off.
