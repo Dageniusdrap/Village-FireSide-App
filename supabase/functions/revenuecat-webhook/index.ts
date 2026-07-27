@@ -121,6 +121,18 @@ Deno.serve(async (req) => {
 
   const event = payload.event;
 
+  // Validate event structure
+  if (
+    !event ||
+    typeof event !== "object" ||
+    !event.type ||
+    !event.app_user_id ||
+    !event.product_id ||
+    !event.id
+  ) {
+    return new Response(JSON.stringify({ error: "invalid_request" }), { status: 400 });
+  }
+
   if (event.type === "TEST") {
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   }
@@ -145,6 +157,17 @@ Deno.serve(async (req) => {
     const premiumProductId = (premiumSettingsRow?.value as string | undefined) ?? "";
 
     const action = mapEventToAction(event, coinPackProducts, premiumProductId);
+
+    // Check for duplicate delivery (idempotency)
+    const { data: existingTransaction } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("reference", event.id)
+      .maybeSingle();
+
+    if (existingTransaction) {
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }
 
     if (action.action === "credit_coins") {
       const { data: profile } = await supabase
