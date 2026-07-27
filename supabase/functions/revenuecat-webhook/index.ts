@@ -57,6 +57,34 @@ export function mapEventToAction(
   return { action: "none" };
 }
 
+// Inserts the transactions row that marks an event as processed BEFORE
+// any profile mutation happens, so the atomicity boundary is the
+// database's own unique index on `transactions.reference`
+// (see migration 20260727090000) rather than a separate read-then-act
+// check. Two concurrent deliveries of the same event both attempt this
+// insert; only one can win, and the loser gets a 23505 (unique
+// violation) back from Postgres instead of racing ahead to mutate
+// profiles a second time.
+async function recordTransactionOnce(
+  supabase: ReturnType<typeof createClient>,
+  row: {
+    user_id: string;
+    transaction_type: string;
+    amount: number;
+    coins_delta?: number;
+    reference: string;
+  },
+): Promise<boolean> {
+  const { error } = await supabase.from("transactions").insert(row);
+  if (error) {
+    if (error.code === "23505") {
+      return false; // duplicate delivery of an already-processed event
+    }
+    throw error;
+  }
+  return true;
+}
+
 async function verifySignature(
   rawBody: string,
   signatureHeader: string | null,
@@ -158,60 +186,62 @@ Deno.serve(async (req) => {
 
     const action = mapEventToAction(event, coinPackProducts, premiumProductId);
 
-    // Check for duplicate delivery (idempotency)
-    const { data: existingTransaction } = await supabase
-      .from("transactions")
-      .select("id")
-      .eq("reference", event.id)
-      .maybeSingle();
-
-    if (existingTransaction) {
-      return new Response(JSON.stringify({ ok: true }), { status: 200 });
-    }
-
+    // Idempotency is enforced by inserting the transactions row FIRST
+    // and only performing the profiles mutation if that insert is the
+    // one that actually wins the unique index on `reference` (see
+    // recordTransactionOnce above). There is no separate read-then-act
+    // pre-check here anymore — the insert itself is the atomicity
+    // boundary, which is what closes the concurrent-delivery race a
+    // plain SELECT-then-INSERT check could not.
     if (action.action === "credit_coins") {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("coin_balance")
-        .eq("id", event.app_user_id)
-        .maybeSingle();
-      if (profile) {
-        await supabase
-          .from("profiles")
-          .update({ coin_balance: profile.coin_balance + action.coins })
-          .eq("id", event.app_user_id);
-      }
-      await supabase.from("transactions").insert({
+      const isFirstDelivery = await recordTransactionOnce(supabase, {
         user_id: event.app_user_id,
         transaction_type: "coin_purchase",
         amount: action.coins,
         coins_delta: action.coins,
         reference: event.id,
       });
+      if (isFirstDelivery) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("coin_balance")
+          .eq("id", event.app_user_id)
+          .maybeSingle();
+        if (profile) {
+          await supabase
+            .from("profiles")
+            .update({ coin_balance: profile.coin_balance + action.coins })
+            .eq("id", event.app_user_id);
+        }
+      }
     } else if (action.action === "set_premium") {
-      await supabase
-        .from("profiles")
-        .update({
-          is_premium: true,
-          premium_expires_at: new Date(action.expiresAtMs).toISOString(),
-        })
-        .eq("id", event.app_user_id);
-      await supabase.from("transactions").insert({
+      const isFirstDelivery = await recordTransactionOnce(supabase, {
         user_id: event.app_user_id,
         transaction_type: "subscription",
         amount: 0,
         reference: event.id,
       });
+      if (isFirstDelivery) {
+        await supabase
+          .from("profiles")
+          .update({
+            is_premium: true,
+            premium_expires_at: new Date(action.expiresAtMs).toISOString(),
+          })
+          .eq("id", event.app_user_id);
+      }
     } else if (action.action === "expire_premium") {
-      await supabase.from("profiles").update({ is_premium: false }).eq("id", event.app_user_id);
-      await supabase.from("transactions").insert({
+      const isFirstDelivery = await recordTransactionOnce(supabase, {
         user_id: event.app_user_id,
         transaction_type: "subscription",
         amount: 0,
         reference: event.id,
       });
+      if (isFirstDelivery) {
+        await supabase.from("profiles").update({ is_premium: false }).eq("id", event.app_user_id);
+      }
     } else if (action.action === "log_only") {
-      await supabase.from("transactions").insert({
+      await recordTransactionOnce(supabase, {
         user_id: event.app_user_id,
         transaction_type: "subscription",
         amount: 0,
