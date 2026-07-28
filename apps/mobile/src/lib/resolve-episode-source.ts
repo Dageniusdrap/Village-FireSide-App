@@ -18,7 +18,7 @@ export async function resolveEpisodeSource(episodeId: string): Promise<EpisodeSo
   return resolveRemoteEpisodeSource(episodeId);
 }
 
-async function resolveRemoteEpisodeSource(episodeId: string): Promise<EpisodeSourceResult> {
+export async function resolveRemoteEpisodeSource(episodeId: string): Promise<EpisodeSourceResult> {
   const { data, error } = await supabase.functions.invoke<{ signedUrl: string; expiresIn: number }>(
     "get-episode-audio",
     { body: { episode_id: episodeId } },
