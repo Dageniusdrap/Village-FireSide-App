@@ -39,7 +39,7 @@ profile creation" below.
 | `country`                  | `text`, nullable                |                                                                                            |
 | `coin_balance`             | `bigint`, default `0`           | Whole coins, never a fraction. Can only change via the service role.                       |
 | `is_premium`               | `boolean`, default `false`      | Can only change via the service role.                                                      |
-| `premium_expires_at`       | `timestamptz`, nullable         |                                                                                            |
+| `premium_expires_at`       | `timestamptz`, nullable         | Can only change via the service role.                                                      |
 | `created_at`, `updated_at` | `timestamptz`                   | `updated_at` auto-maintained by trigger.                                                   |
 
 ### `destinations`
@@ -470,3 +470,36 @@ retry) is also caught via a `unique_violation` exception handler around
 the balance-check-through-inserts block, which rolls back that call's
 own redundant decrement before returning the same graceful
 `already_unlocked` result.
+
+`EXECUTE` is revoked from `PUBLIC` and granted only to `service_role` —
+the function takes `p_user_id` as an argument instead of reading
+`auth.uid()`, so the "service role only" rule is a security boundary,
+not just a convention.
+
+## `apply_revenuecat_event` function
+
+`apply_revenuecat_event(p_user_id uuid, p_event_id text, p_action text,
+p_coins bigint, p_expires_at timestamptz) returns jsonb` is the only
+path by which `profiles.coin_balance` is ever incremented and the only
+path by which `is_premium`/`premium_expires_at` are ever changed. It
+inserts the `transactions` row that marks a RevenueCat event as
+processed (idempotency, keyed by the unique index on `reference`) and
+performs the matching `profiles` mutation in one transaction, so the
+two can never disagree — a replay short-circuits on `unique_violation`
+and returns `{"result": "already_processed"}` without touching
+`profiles`, and any genuine failure rolls both writes back so
+`revenuecat-webhook` can answer non-2xx and let RevenueCat retry.
+Returns `{"result": "applied" | "already_processed"}`.
+
+`p_action` is one of `credit_coins`, `set_premium`, `expire_premium`,
+`log_only`. Balance math is always relative in SQL
+(`coin_balance = coin_balance + p_coins`), which takes the same
+row-level write serialization `unlock_episode`'s decrement does — a
+concurrent unlock and credit, or two concurrent credits, cannot lose an
+update. Premium moves are ordering-guarded: `set_premium` only ever
+pushes `premium_expires_at` forward (`greatest(...)`) and derives
+`is_premium` from the resulting expiry, and `expire_premium` only fires
+when the stored expiry isn't newer than the expiry the event refers to,
+so a stale or out-of-order event can never shorten a paying
+subscriber's access. Like `unlock_episode`, `EXECUTE` is revoked from
+`PUBLIC` and granted only to `service_role`.

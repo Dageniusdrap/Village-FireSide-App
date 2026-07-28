@@ -16,11 +16,13 @@ internal query isn't subject to the calling policy's own RLS check.
 
 **`prevent_protected_profile_changes()`** — a `BEFORE UPDATE` trigger on
 `profiles` (not an RLS policy) that blocks any change to `coin_balance`,
-`is_premium`, or `role` unless the request is running as the `service_role`.
+`is_premium`, `premium_expires_at`, or `role` unless the request is running
+as the `service_role`.
 This exists because RLS policies control _row_ access, not individual
 _column_ writes — a `WHERE`-style check can't easily say "this row, but
-not these three columns." The trigger is what actually stops a user from
-crediting themselves coins through their own-row `UPDATE` policy below.
+not these four columns." The trigger is what actually stops a user from
+crediting themselves coins — or extending their own premium expiry —
+through their own-row `UPDATE` policy below.
 
 ## Policy by table
 
@@ -29,9 +31,9 @@ crediting themselves coins through their own-row `UPDATE` policy below.
 - **Select/update own row** (`profiles_select_own`, `profiles_update_own`):
   any request where `auth.uid() = id`. No policy lets one user read
   another user's profile.
-- `coin_balance`, `is_premium`, and `role` are blocked from changing via
-  the trigger described above, regardless of which policy let the
-  `UPDATE` through.
+- `coin_balance`, `is_premium`, `premium_expires_at`, and `role` are
+  blocked from changing via the trigger described above, regardless of
+  which policy let the `UPDATE` through.
 
 ### `destinations`, `series`
 

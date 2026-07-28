@@ -25,7 +25,13 @@ exist.
    `premium_expires_at` (`INITIAL_PURCHASE`/`RENEWAL`/etc.). The mobile
    app never credits coins or sets premium status itself — only the
    webhook does, after the purchase is already verified by the store
-   and RevenueCat.
+   and RevenueCat. Both of the webhook's writes — the `transactions` row
+   that marks the event processed and the `profiles` mutation itself —
+   happen inside one `apply_revenuecat_event` transaction, so a partial
+   failure can't leave a purchase recorded but uncredited; a genuine
+   failure rolls both back and answers non-2xx so RevenueCat retries.
+   Because the purchase is credited to whichever profile the RevenueCat
+   App User ID names, the purchase screen requires a signed-in session.
 4. The Profile screen and the coin purchase screen both read
    `profiles.coin_balance`/`is_premium`/`premium_expires_at` via
    `useProfile()` (TanStack Query), so a webhook-driven change shows up
@@ -43,6 +49,11 @@ exist.
   conditions — not "premium unlocks everything and losing premium
   revokes it." An `EXPIRATION` webhook event flips `is_premium` to
   `false` but never touches `unlocks` rows.
+- **A stale webhook event can't cost a subscriber access they paid for.**
+  `apply_revenuecat_event` only ever moves `premium_expires_at` forward,
+  and only honours an `EXPIRATION` whose expiry isn't older than the one
+  already stored — so an out-of-order delivery can't shorten or revoke
+  premium that a later renewal already extended.
 
 ## Product identifiers and `app_settings`
 
@@ -79,6 +90,18 @@ products exist):
    deployed `revenuecat-webhook` edge function's URL, enable HMAC
    signing, and set the resulting signing secret as this project's
    `REVENUECAT_WEBHOOK_SECRET` Supabase Edge Function secret.
+
+   **Required:** `revenuecat-webhook` must be deployed with JWT
+   verification disabled. Supabase verifies a Supabase-issued JWT on
+   every edge function request by default and rejects it with a
+   platform-level 401 _before_ the function's own code runs — and
+   RevenueCat, as a third-party sender, has no Supabase JWT to present
+   (it authenticates its deliveries with the HMAC signature the function
+   verifies itself). `supabase/config.toml` already sets
+   `verify_jwt = false` for this one function, which the CLI applies on
+   `supabase functions deploy revenuecat-webhook`; if you deploy some
+   other way, pass `--no-verify-jwt`. Every other edge function keeps the
+   default, since they're called by the app with a real user session.
 
 ## Testing with the RevenueCat sandbox
 
