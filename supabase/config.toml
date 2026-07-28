@@ -1,0 +1,20 @@
+# Supabase CLI project configuration.
+#
+# Only the settings this project actually needs to override are listed —
+# everything else uses the CLI's defaults.
+
+project_id = "village-fireside"
+
+[functions.revenuecat-webhook]
+# Supabase verifies a Supabase-issued JWT on every edge function request by
+# default and rejects the request with a platform-level 401 before the
+# function's own code runs. RevenueCat is a third-party sender: it has no
+# Supabase JWT to present, it authenticates its deliveries with its own HMAC
+# signature instead (verified in the function body against
+# REVENUECAT_WEBHOOK_SECRET). Without this the webhook 401s on every real
+# delivery.
+verify_jwt = false
+
+# get-episode-audio and unlock-episode deliberately keep the default
+# (verify_jwt = true) — both are called by the mobile app with a real user
+# session and authenticate the caller from that JWT.
