@@ -158,15 +158,21 @@ calls to make this discovery:
   it directly, without duplicating the `get-episode-audio` invocation.
 - Tapping "Download" calls it. `{ type: "remote", url }` → the episode is
   currently accessible (free, coin-unlocked, or active-premium); enqueue
-  a download from that signed URL. `{ type: "locked" }` → open the same
-  Unlock Sheet tapping "Play" would open, instead of downloading.
-  `{ type: "not_found" }` / `{ type: "error" }` → a toast, same as
-  playback's handling.
-- This means a coins-tier episode the user hasn't unlocked still shows a
-  download affordance (consistent with today's "every row looks the
-  same until you try" pattern) — tapping it surfaces the Unlock Sheet
-  rather than silently doing nothing, which is more helpful than hiding
-  the button and matches how tapping such a row to _play_ already works.
+  a download from that signed URL. `{ type: "locked" }` / `{ type: "not_found" }` /
+  `{ type: "error" }` → a toast ("Unlock this episode to download it." /
+  the existing generic failure copy), **not** the Unlock Sheet.
+- **Correction made during planning:** the original idea of opening the
+  existing Unlock Sheet on a locked download tap doesn't actually fit —
+  `unlock-sheet.tsx`'s `handleUnlock` always calls `playQueue` on a
+  successful unlock (it's built for the "advance into a locked track"
+  flow and resumes playback as part of that). Reusing it from a download
+  tap would unlock the episode and then unexpectedly start playing it
+  instead of downloading it. A toast is a smaller, honest surface for
+  v1; teaching the Unlock Sheet a "then download instead of play" mode
+  is a reasonable future enhancement but out of scope here. Locked rows
+  on the series-detail screen already render with `onPress={undefined}`
+  today (see `series/[id].tsx`) — a non-actionable download tap for the
+  same rows is consistent with that existing pattern, not a regression.
 
 ## `apps/mobile/src/stores/download-queue-store.ts` (new, Zustand)
 
