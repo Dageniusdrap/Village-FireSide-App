@@ -14,7 +14,7 @@ type CoinPackMap = Record<string, number>;
 type WebhookAction =
   | { action: "credit_coins"; coins: number }
   | { action: "set_premium"; expiresAtMs: number }
-  | { action: "expire_premium" }
+  | { action: "expire_premium"; expiresAtMs: number | null }
   | { action: "log_only" }
   | { action: "none" };
 
@@ -42,9 +42,11 @@ export function mapEventToAction(
   }
 
   // Not CANCELLATION: cancelling only stops future renewal, access
-  // continues until the subscription actually expires.
+  // continues until the subscription actually expires. `expiresAtMs` is
+  // carried through so apply_revenuecat_event can tell a genuine
+  // expiration from a stale one that a later renewal already superseded.
   if (isPremiumProduct && event.type === "EXPIRATION") {
-    return { action: "expire_premium" };
+    return { action: "expire_premium", expiresAtMs: event.expiration_at_ms ?? null };
   }
 
   // Logged for observability but no state change — cancelling a coin
@@ -57,33 +59,14 @@ export function mapEventToAction(
   return { action: "none" };
 }
 
-// Inserts the transactions row that marks an event as processed BEFORE
-// any profile mutation happens, so the atomicity boundary is the
-// database's own unique index on `transactions.reference`
-// (see migration 20260727090000) rather than a separate read-then-act
-// check. Two concurrent deliveries of the same event both attempt this
-// insert; only one can win, and the loser gets a 23505 (unique
-// violation) back from Postgres instead of racing ahead to mutate
-// profiles a second time.
-async function recordTransactionOnce(
-  supabase: ReturnType<typeof createClient>,
-  row: {
-    user_id: string;
-    transaction_type: string;
-    amount: number;
-    coins_delta?: number;
-    reference: string;
-  },
-): Promise<boolean> {
-  const { error } = await supabase.from("transactions").insert(row);
-  if (error) {
-    if (error.code === "23505") {
-      return false; // duplicate delivery of an already-processed event
-    }
-    throw error;
-  }
-  return true;
-}
+// Postgres error codes this function has to tell apart from a generic
+// failure. 22P02 = invalid text representation (RevenueCat's anonymous
+// app user ids look like "$RCAnonymousID:abc123", which can't be cast to
+// uuid); 23503 = foreign key violation (a well-formed uuid that isn't
+// one of our profiles). Neither is retryable — retrying either forever
+// is exactly the 500-loop this guard exists to prevent.
+const PG_INVALID_TEXT_REPRESENTATION = "22P02";
+const PG_FOREIGN_KEY_VIOLATION = "23503";
 
 async function verifySignature(
   rawBody: string,
@@ -170,87 +153,93 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    const { data: coinSettingsRow } = await supabase
+    // These two lookups decide whether an event maps to a real action at
+    // all, so a failed read here must NOT be swallowed: silently falling
+    // back to an empty mapping would turn a paid purchase into a
+    // no-op "none" action and still answer 200.
+    const { data: coinSettingsRow, error: coinSettingsError } = await supabase
       .from("app_settings")
       .select("value")
       .eq("key", "coin_pack_products")
       .maybeSingle();
-    const { data: premiumSettingsRow } = await supabase
+    if (coinSettingsError) {
+      throw coinSettingsError;
+    }
+    const { data: premiumSettingsRow, error: premiumSettingsError } = await supabase
       .from("app_settings")
       .select("value")
       .eq("key", "premium_product_id")
       .maybeSingle();
+    if (premiumSettingsError) {
+      throw premiumSettingsError;
+    }
 
     const coinPackProducts = (coinSettingsRow?.value as CoinPackMap | undefined) ?? {};
     const premiumProductId = (premiumSettingsRow?.value as string | undefined) ?? "";
 
     const action = mapEventToAction(event, coinPackProducts, premiumProductId);
 
-    // Idempotency is enforced by inserting the transactions row FIRST
-    // and only performing the profiles mutation if that insert is the
-    // one that actually wins the unique index on `reference` (see
-    // recordTransactionOnce above). There is no separate read-then-act
-    // pre-check here anymore — the insert itself is the atomicity
-    // boundary, which is what closes the concurrent-delivery race a
-    // plain SELECT-then-INSERT check could not.
-    if (action.action === "credit_coins") {
-      const isFirstDelivery = await recordTransactionOnce(supabase, {
-        user_id: event.app_user_id,
-        transaction_type: "coin_purchase",
-        amount: action.coins,
-        coins_delta: action.coins,
-        reference: event.id,
-      });
-      if (isFirstDelivery) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("coin_balance")
-          .eq("id", event.app_user_id)
-          .maybeSingle();
-        if (profile) {
-          await supabase
-            .from("profiles")
-            .update({ coin_balance: profile.coin_balance + action.coins })
-            .eq("id", event.app_user_id);
-        }
-      }
-    } else if (action.action === "set_premium") {
-      const isFirstDelivery = await recordTransactionOnce(supabase, {
-        user_id: event.app_user_id,
-        transaction_type: "subscription",
-        amount: 0,
-        reference: event.id,
-      });
-      if (isFirstDelivery) {
-        await supabase
-          .from("profiles")
-          .update({
-            is_premium: true,
-            premium_expires_at: new Date(action.expiresAtMs).toISOString(),
-          })
-          .eq("id", event.app_user_id);
-      }
-    } else if (action.action === "expire_premium") {
-      const isFirstDelivery = await recordTransactionOnce(supabase, {
-        user_id: event.app_user_id,
-        transaction_type: "subscription",
-        amount: 0,
-        reference: event.id,
-      });
-      if (isFirstDelivery) {
-        await supabase.from("profiles").update({ is_premium: false }).eq("id", event.app_user_id);
-      }
-    } else if (action.action === "log_only") {
-      await recordTransactionOnce(supabase, {
-        user_id: event.app_user_id,
-        transaction_type: "subscription",
-        amount: 0,
-        reference: event.id,
-      });
+    if (action.action === "none") {
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
     }
+
+    // Everything else goes through one atomic Postgres function: it
+    // inserts the transactions row (the idempotency marker, keyed by the
+    // unique index on `reference`) and performs the profiles mutation in
+    // a single transaction, so the two can never disagree. A replay
+    // short-circuits inside the function and reports "already_processed"
+    // without touching profiles; a genuine failure raises and rolls both
+    // writes back, and is answered with a non-2xx below so RevenueCat
+    // retries.
+    const expiresAtMs =
+      action.action === "set_premium" || action.action === "expire_premium"
+        ? action.expiresAtMs
+        : null;
+
+    const { data, error } = await supabase.rpc("apply_revenuecat_event", {
+      p_user_id: event.app_user_id,
+      p_event_id: event.id,
+      p_action: action.action,
+      p_coins: action.action === "credit_coins" ? action.coins : 0,
+      p_expires_at: expiresAtMs === null ? null : new Date(expiresAtMs).toISOString(),
+    });
+
+    if (error) {
+      if (
+        error.code === PG_INVALID_TEXT_REPRESENTATION ||
+        error.code === PG_FOREIGN_KEY_VIOLATION
+      ) {
+        // Not a retryable failure: this event names an app_user_id that
+        // will never resolve to a profile (an anonymous RevenueCat id, or
+        // a deleted/unknown user). Park it with a 200 so RevenueCat stops
+        // redelivering, and log loudly enough to reconcile by hand.
+        console.error(
+          "revenuecat-webhook: unresolvable app_user_id — parking event, manual reconciliation required.",
+          JSON.stringify({
+            event_id: event.id,
+            event_type: event.type,
+            product_id: event.product_id,
+            app_user_id: event.app_user_id,
+            action: action.action,
+            pg_code: error.code,
+          }),
+        );
+        return new Response(JSON.stringify({ ok: true, parked: "unresolvable_app_user_id" }), {
+          status: 200,
+        });
+      }
+      throw error;
+    }
+
+    const result = (data as { result?: string } | null)?.result ?? "unknown";
+    console.log(
+      `revenuecat-webhook: event ${event.id} (${event.type}) -> ${action.action}: ${result}`,
+    );
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (err) {
+    // A 500 here is deliberate: RevenueCat retries non-2xx deliveries,
+    // and after the rollback above nothing has been half-applied.
     console.error("revenuecat-webhook error:", err);
     return new Response(JSON.stringify({ error: "internal_error" }), { status: 500 });
   }
