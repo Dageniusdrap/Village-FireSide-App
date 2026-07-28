@@ -35,6 +35,15 @@ begin
     where id = p_user_id
     for update;
 
+    -- Without this guard a missing profile row leaves v_balance NULL,
+    -- `NULL < price` evaluates to NULL (not true), and the function
+    -- falls through to decrement/insert against a user that doesn't
+    -- exist. Fail loudly instead — the edge function turns this into a
+    -- logged 500 rather than a silent no-op.
+    if not found then
+      raise exception 'unlock_episode: no profiles row for user %', p_user_id;
+    end if;
+
     if v_balance < v_episode.coin_price then
       return jsonb_build_object(
         'result', 'insufficient_coins',
@@ -63,3 +72,13 @@ begin
   end;
 end;
 $$;
+
+-- "Service role only" is an invariant this function's whole trust model
+-- depends on (it takes p_user_id as an argument instead of reading
+-- auth.uid(), so anyone able to execute it could unlock episodes as any
+-- user). Postgres grants EXECUTE on new functions to PUBLIC by default,
+-- which would let any authenticated client call it through PostgREST —
+-- revoke that and grant it only to the role the unlock-episode edge
+-- function uses.
+revoke execute on function unlock_episode(uuid, uuid) from public;
+grant execute on function unlock_episode(uuid, uuid) to service_role;

@@ -15,9 +15,9 @@ as $$
   );
 $$;
 
--- Blocks changes to coin_balance / is_premium / role from any request
--- that isn't running as the service role, regardless of which RLS policy
--- let the UPDATE through.
+-- Blocks changes to coin_balance / is_premium / premium_expires_at /
+-- role from any request that isn't running as the service role,
+-- regardless of which RLS policy let the UPDATE through.
 create or replace function prevent_protected_profile_changes()
 returns trigger
 language plpgsql
@@ -26,9 +26,10 @@ begin
   if auth.role() <> 'service_role' then
     if new.coin_balance is distinct from old.coin_balance
       or new.is_premium is distinct from old.is_premium
+      or new.premium_expires_at is distinct from old.premium_expires_at
       or new.role is distinct from old.role
     then
-      raise exception 'coin_balance, is_premium, and role can only be changed by the service role';
+      raise exception 'coin_balance, is_premium, premium_expires_at, and role can only be changed by the service role';
     end if;
   end if;
   return new;
