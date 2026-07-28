@@ -1,10 +1,20 @@
-// Prompt 10 replaces this function's body with a real lookup against
-// downloaded files (expo-file-system). Prompt 8 stubs it so
-// resolveEpisodeSource's seam exists without building the download
-// mechanism itself. When implemented, this must return a bare filesystem
-// path (no `file://` prefix) — player-store.ts's loadTrackAtIndex already
-// prepends `file://` itself when building the audio source for a local
-// result.
-export async function getLocalDownloadPath(_episodeId: string): Promise<string | null> {
-  return null;
+import { File } from "expo-file-system";
+
+import { deleteDownload, getDownload } from "@/lib/downloads-db";
+import { toFileUri } from "@/lib/download-file";
+
+// Self-healing: if the OS ever evicts a downloaded file out from under
+// the app (low device storage, etc.), the stale DB row is cleaned up
+// here rather than the player getting a dangling path back.
+export async function getLocalDownloadPath(episodeId: string): Promise<string | null> {
+  const record = getDownload(episodeId);
+  if (!record) {
+    return null;
+  }
+  const file = new File(toFileUri(record.localPath));
+  if (!file.exists) {
+    deleteDownload(episodeId);
+    return null;
+  }
+  return record.localPath;
 }
