@@ -1,0 +1,35 @@
+-- supabase/migrations/20260728130000_revoke_default_execute_grants.sql
+--
+-- unlock_episode and apply_revenuecat_event both take a user id as a
+-- plain argument instead of reading auth.uid(), and both perform
+-- privileged writes (coin_balance, unlocks, is_premium,
+-- premium_expires_at) that bypass the RLS policies a normal client
+-- request would be subject to. Their whole trust model depends on only
+-- the service role (used by the unlock-episode and revenuecat-webhook
+-- edge functions) ever being able to call them.
+--
+-- Their defining migrations already ran `revoke execute ... from
+-- public`, but on a Supabase project that alone is not enough: Supabase
+-- provisions every new project with
+--   alter default privileges for role postgres in schema public
+--     grant execute on functions to anon, authenticated, service_role;
+-- so a function created in the public schema also receives an
+-- *explicit* EXECUTE grant to anon and authenticated, independent of
+-- (and not removed by) revoking PUBLIC. This migration closes that gap.
+--
+-- Not currently exploitable: both functions are plain (non-SECURITY
+-- DEFINER) plpgsql, so a call from the anon/authenticated role still
+-- runs under that role's own RLS — the missing INSERT policies on
+-- `unlocks`/`transactions` and the `profiles_protect_columns` trigger
+-- both independently block the writes today. This migration removes the
+-- unused grant so the function's trust boundary doesn't rely on those
+-- other guards remaining in place.
+--
+-- No other function in this schema shares this risk pattern: is_admin()
+-- is SECURITY DEFINER but only ever reads the caller's own auth.uid(),
+-- and set_updated_at()/handle_new_user()/prevent_protected_profile_changes()
+-- are trigger functions, which Postgres refuses to invoke outside a
+-- trigger context regardless of grants.
+
+revoke execute on function unlock_episode(uuid, uuid) from anon, authenticated;
+revoke execute on function apply_revenuecat_event(uuid, text, text, bigint, timestamptz) from anon, authenticated;
