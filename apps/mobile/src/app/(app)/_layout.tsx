@@ -3,14 +3,14 @@ import { StyleSheet, View } from "react-native";
 
 import { NowPlayingOverlay } from "@/components/now-playing-overlay";
 import { PlaybackToast } from "@/components/playback-toast";
-import { UnlockSheetStub } from "@/components/unlock-sheet-stub";
+import { UnlockSheet } from "@/components/unlock-sheet";
 import { MiniPlayer } from "@/components/ui/mini-player";
 
 // AudioStatusDriver is deliberately NOT rendered here — it lives in the
 // root layout (apps/mobile/src/app/_layout.tsx) instead, because it needs
 // to stay mounted across navigation into the (auth) route group too (e.g.
 // a guest tapping Sign In from the Now Playing overlay's bookmark prompt
-// unmounts this entire (app) subtree). MiniPlayer/UnlockSheetStub/
+// unmounts this entire (app) subtree). MiniPlayer/UnlockSheet/
 // PlaybackToast/NowPlayingOverlay are legitimately (app)-only UI and stay
 // here.
 export default function AppLayout() {
@@ -24,7 +24,7 @@ export default function AppLayout() {
         <Stack.Screen name="coins" options={{ headerShown: false }} />
       </Stack>
       <MiniPlayer />
-      <UnlockSheetStub />
+      <UnlockSheet />
       <PlaybackToast />
       <NowPlayingOverlay />
     </View>
