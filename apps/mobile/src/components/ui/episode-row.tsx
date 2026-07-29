@@ -6,6 +6,7 @@ import { SourceBadge } from "@/components/ui/source-badge";
 import { Spacing } from "@/constants/theme";
 import { formatDuration } from "@/lib/format-duration";
 import type { AccessTier, ContentSource } from "@/types/content";
+import type { DownloadStatus } from "@/stores/download-queue-store";
 
 function lockLabel(accessTier: AccessTier, coinPrice: number | undefined): string {
   if (accessTier === "premium") {
@@ -17,6 +18,23 @@ function lockLabel(accessTier: AccessTier, coinPrice: number | undefined): strin
   return "🔒";
 }
 
+function downloadIcon(status: DownloadStatus | undefined): string {
+  switch (status) {
+    case "downloaded":
+      return "✓";
+    case "downloading":
+      return "↓";
+    case "queued":
+      return "⏳";
+    case "paused_wifi":
+      return "📶";
+    case "error":
+      return "⟳";
+    default:
+      return "⬇";
+  }
+}
+
 export function EpisodeRow({
   title,
   durationSeconds,
@@ -25,6 +43,8 @@ export function EpisodeRow({
   coinPrice,
   resumePositionSeconds,
   onPress,
+  downloadStatus,
+  onDownloadPress,
 }: {
   title: string;
   durationSeconds: number | null;
@@ -33,6 +53,8 @@ export function EpisodeRow({
   coinPrice?: number;
   resumePositionSeconds?: number | null;
   onPress?: () => void;
+  downloadStatus?: DownloadStatus;
+  onDownloadPress?: () => void;
 }) {
   const isLocked = accessTier !== "free";
 
@@ -58,6 +80,16 @@ export function EpisodeRow({
       <ThemedText type="small" themeColor={isLocked ? "textSecondary" : "primary"}>
         {isLocked ? lockLabel(accessTier, coinPrice) : "Free"}
       </ThemedText>
+      {onDownloadPress ? (
+        <Pressable onPress={onDownloadPress} hitSlop={8} style={styles.downloadButton}>
+          <ThemedText
+            type="default"
+            themeColor={downloadStatus === "downloaded" ? "success" : "textSecondary"}
+          >
+            {downloadIcon(downloadStatus)}
+          </ThemedText>
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }
@@ -81,5 +113,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.two,
+  },
+  downloadButton: {
+    paddingHorizontal: Spacing.one,
   },
 });
