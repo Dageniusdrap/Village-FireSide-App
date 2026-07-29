@@ -18,6 +18,7 @@ import { useIsFavorited } from "@/hooks/queries/use-is-favorited";
 import { useSeriesDetail } from "@/hooks/queries/use-series-detail";
 import { useToggleFavorite } from "@/hooks/queries/use-toggle-favorite";
 import { usePlayerStore, type QueueEpisode } from "@/stores/player-store";
+import { useDownloadQueueStore } from "@/stores/download-queue-store";
 
 export default function SeriesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +29,9 @@ export default function SeriesDetailScreen() {
   const { requireAuth, promptVisible, dismissPrompt } = useRequireAuth();
   const isFavoritedQuery = useIsFavorited({ seriesId: id });
   const isFavorited = isFavoritedQuery.data ?? false;
+  const downloadEntries = useDownloadQueueStore((state) => state.entries);
+  const enqueueDownload = useDownloadQueueStore((state) => state.enqueue);
+  const enqueueSeriesDownload = useDownloadQueueStore((state) => state.enqueueSeries);
 
   if (query.isLoading) {
     return (
@@ -81,6 +85,10 @@ export default function SeriesDetailScreen() {
     });
   };
 
+  const handleDownloadSeries = () => {
+    enqueueSeriesDownload(buildQueue()).catch(() => {});
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <BackButton />
@@ -111,6 +119,11 @@ export default function SeriesDetailScreen() {
               {isFavorited ? "♥ Favorited" : "♡ Favorite"}
             </ThemedText>
           </Pressable>
+          <Pressable onPress={handleDownloadSeries}>
+            <ThemedText type="default" themeColor="textSecondary">
+              ⬇ Download series
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         {series.episodes.length === 0 ? (
@@ -134,6 +147,15 @@ export default function SeriesDetailScreen() {
                       playQueue(buildQueue(), startIndex).catch(() => {});
                     }
                   : undefined
+              }
+              downloadStatus={downloadEntries[episode.id]?.status}
+              onDownloadPress={() =>
+                enqueueDownload({
+                  ...episode,
+                  seriesId: series.id,
+                  seriesTitle: series.title,
+                  coverImageUrl: series.coverImageUrl,
+                }).catch(() => {})
               }
             />
           ))
