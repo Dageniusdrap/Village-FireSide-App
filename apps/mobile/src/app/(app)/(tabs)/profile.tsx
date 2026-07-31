@@ -43,6 +43,7 @@ export default function ProfileScreen() {
           </ThemedView>
         ) : null}
 
+        <Button label="Settings" variant="ghost" onPress={() => router.push("/settings")} />
         <Button
           label={guestMode ? "Sign In" : "Sign Out"}
           variant="ghost"

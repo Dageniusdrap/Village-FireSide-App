@@ -22,6 +22,7 @@ export default function AppLayout() {
         <Stack.Screen name="contributor/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="cultural-group/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="coins" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
       <MiniPlayer />
       <UnlockSheet />
