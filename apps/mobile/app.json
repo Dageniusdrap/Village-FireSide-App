@@ -46,7 +46,15 @@
           "recordAudioAndroid": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "your-android-google-maps-api-key"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
