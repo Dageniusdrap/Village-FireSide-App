@@ -9,19 +9,22 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, Slot, ThemeProvider, useRouter } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, StyleSheet, useColorScheme } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { AudioStatusDriver } from "@/components/audio-status-driver";
+import { OfflineBanner } from "@/components/offline-banner";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthListener } from "@/hooks/use-auth-listener";
 import { useConfigureAudioMode } from "@/hooks/use-configure-audio-mode";
 import { useConfigurePurchases } from "@/hooks/use-configure-purchases";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
 import { useRouteSegments } from "@/hooks/use-route-segments";
 import { useSyncPurchasesIdentity } from "@/hooks/use-sync-purchases-identity";
 import { resolveAuthRedirect } from "@/lib/auth-redirect";
+import { resolveOfflineLaunchRedirect } from "@/lib/offline-redirect";
 import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -36,6 +39,8 @@ export default function RootLayout() {
   useConfigureAudioMode();
   useConfigurePurchases();
   useSyncPurchasesIdentity();
+  const { isConnected } = useNetworkStatus();
+  const hasCheckedOfflineLaunch = useRef(false);
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -81,8 +86,16 @@ export default function RootLayout() {
     });
     if (href) {
       router.replace(href);
+      return;
     }
-  }, [loading, fontsLoaded, session, guestMode, passwordRecovery, segments, router]);
+    if (!hasCheckedOfflineLaunch.current && isConnected !== null) {
+      hasCheckedOfflineLaunch.current = true;
+      const offlineHref = resolveOfflineLaunchRedirect({ isConnected, segments });
+      if (offlineHref) {
+        router.replace(offlineHref);
+      }
+    }
+  }, [loading, fontsLoaded, session, guestMode, passwordRecovery, segments, router, isConnected]);
 
   const theme = colorScheme === "dark" ? DarkTheme : DefaultTheme;
 
@@ -94,6 +107,7 @@ export default function RootLayout() {
             <ActivityIndicator />
           </ThemedView>
           <AudioStatusDriver />
+          <OfflineBanner />
         </ThemeProvider>
       </QueryClientProvider>
     );
@@ -105,6 +119,7 @@ export default function RootLayout() {
         <AnimatedSplashOverlay />
         <Slot />
         <AudioStatusDriver />
+        <OfflineBanner />
       </ThemeProvider>
     </QueryClientProvider>
   );
