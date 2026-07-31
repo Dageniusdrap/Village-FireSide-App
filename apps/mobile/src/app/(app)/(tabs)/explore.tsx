@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MapView from "react-native-map-clustering";
+import { Marker } from "react-native-maps";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/chip";
@@ -101,7 +103,31 @@ export default function ExploreScreen() {
             </View>
           )}
         </ScrollView>
-      ) : null}
+      ) : (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            // Roughly centered over Uganda/Rwanda/Kenya — a fixed default,
+            // not derived from device location (no location-permission flow
+            // exists anywhere in this app).
+            latitude: 0.5,
+            longitude: 32.5,
+            latitudeDelta: 8,
+            longitudeDelta: 8,
+          }}
+        >
+          {filtered
+            .filter((d) => d.latitude !== null && d.longitude !== null)
+            .map((destination) => (
+              <Marker
+                key={destination.id}
+                coordinate={{ latitude: destination.latitude!, longitude: destination.longitude! }}
+                title={destination.name}
+                onPress={() => router.push(`/destination/${destination.slug}`)}
+              />
+            ))}
+        </MapView>
+      )}
     </SafeAreaView>
   );
 }
@@ -127,5 +153,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.three,
+  },
+  map: {
+    flex: 1,
   },
 });
