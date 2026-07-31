@@ -169,6 +169,27 @@ describe("useDownloadQueueStore", () => {
     expect(useDownloadQueueStore.getState().entries["ep-1"]?.status).toBe("downloaded");
   });
 
+  it("resumes paused_wifi entries as soon as the wifi-only setting is turned off", async () => {
+    useSettingsStore.setState({ wifiOnlyDownloads: true });
+    mockFetch.mockResolvedValue({ type: "cellular" });
+    mockResolveRemote.mockResolvedValue({ type: "remote", url: "https://example.com/ep-1.m4a" });
+    mockDownloadFile.mockResolvedValue({ localPath: "/docs/downloads/ep-1.m4a", fileSize: 500 });
+
+    await useDownloadQueueStore.getState().enqueue(episode);
+    await flush();
+    expect(useDownloadQueueStore.getState().entries["ep-1"]?.status).toBe("paused_wifi");
+    expect(mockDownloadFile).not.toHaveBeenCalled();
+
+    // Turning the setting off directly (via setState, not the real
+    // setWifiOnlyDownloads action) — same convention the rest of this
+    // suite uses to avoid touching the real settings.json file write.
+    // No NetInfo event fires here at all; only the settings store changes.
+    useSettingsStore.setState({ wifiOnlyDownloads: false });
+    await flush();
+
+    expect(useDownloadQueueStore.getState().entries["ep-1"]?.status).toBe("downloaded");
+  });
+
   it("remove deletes the file and the DB row for a downloaded episode", async () => {
     mockResolveRemote.mockResolvedValue({ type: "remote", url: "https://example.com/ep-1.m4a" });
     mockDownloadFile.mockResolvedValue({ localPath: "/docs/downloads/ep-1.m4a", fileSize: 500 });

@@ -1,7 +1,11 @@
 import NetInfo from "@react-native-community/netinfo";
 import { create } from "zustand";
 
-import { deleteEpisodeFile, downloadEpisodeFile } from "@/lib/download-file";
+import {
+  cleanupOrphanedDownloads,
+  deleteEpisodeFile,
+  downloadEpisodeFile,
+} from "@/lib/download-file";
 import { deleteDownload, getAllDownloads, getDownload, insertDownload } from "@/lib/downloads-db";
 import { resolveRemoteEpisodeSource } from "@/lib/resolve-episode-source";
 import { shouldPauseForWifi } from "@/lib/wifi-gate";
@@ -117,14 +121,15 @@ export const useDownloadQueueStore = create<DownloadQueueState>((set, get) => {
     }
   }
 
-  NetInfo.addEventListener((state) => {
-    const wifiOnly = useSettingsStore.getState().wifiOnlyDownloads;
-    if (shouldPauseForWifi(state, wifiOnly)) {
-      return;
-    }
+  // Shared by both resume triggers below (a connectivity change back to
+  // wifi, or the wifi-only setting being turned off) — moves every
+  // paused_wifi entry back to queued and kicks the queue. Each caller is
+  // responsible for having already confirmed resuming is appropriate
+  // (the wifi gate passing, or the setting no longer requiring it).
+  function resumePausedDownloads(): void {
     const entries = get().entries;
-    const resumed = Object.entries(entries).filter(([, e]) => e.status === "paused_wifi");
-    if (resumed.length === 0) {
+    const paused = Object.entries(entries).filter(([, e]) => e.status === "paused_wifi");
+    if (paused.length === 0) {
       return;
     }
     set({
@@ -135,7 +140,33 @@ export const useDownloadQueueStore = create<DownloadQueueState>((set, get) => {
       ),
     });
     void processNext();
+  }
+
+  NetInfo.addEventListener((state) => {
+    const wifiOnly = useSettingsStore.getState().wifiOnlyDownloads;
+    if (shouldPauseForWifi(state, wifiOnly)) {
+      return;
+    }
+    resumePausedDownloads();
   });
+
+  // Turning "Wi-Fi only" off should resume any paused_wifi downloads
+  // immediately, not wait for the next NetInfo event (which may never
+  // come if connectivity itself hasn't changed). Only fire on the
+  // true -> false transition of this one field, not every settings
+  // change (shouldPauseForWifi always returns false once the setting is
+  // off, regardless of current connectivity, so no netState is needed).
+  useSettingsStore.subscribe((state, prevState) => {
+    if (prevState.wifiOnlyDownloads && !state.wifiOnlyDownloads) {
+      resumePausedDownloads();
+    }
+  });
+
+  // Foreground-only downloads mean any ".tmp" file on disk at store-init
+  // time is necessarily a leftover from a session killed mid-download
+  // (see download-file.ts) — safe to sweep before seeding the in-memory
+  // entries from the manifest below.
+  cleanupOrphanedDownloads();
 
   return {
     entries: seedDownloadedEntries(),

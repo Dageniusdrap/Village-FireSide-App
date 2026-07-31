@@ -21,6 +21,7 @@ export default function LibraryScreen() {
   const downloadEntries = useDownloadQueueStore((state) => state.entries);
   const removeDownload = useDownloadQueueStore((state) => state.remove);
   const retryDownload = useDownloadQueueStore((state) => state.retry);
+  const cancelDownload = useDownloadQueueStore((state) => state.cancel);
   const removeAllDownloads = useDownloadQueueStore((state) => state.removeAll);
 
   const downloads = Object.entries(downloadEntries).map(([episodeId, entry]) => ({
@@ -117,6 +118,15 @@ export default function LibraryScreen() {
                 <Pressable onPress={() => retryDownload(download.episodeId)}>
                   <ThemedText type="small" themeColor="accent">
                     Retry
+                  </ThemedText>
+                </Pressable>
+              ) : null}
+              {download.status === "queued" ||
+              download.status === "downloading" ||
+              download.status === "paused_wifi" ? (
+                <Pressable onPress={() => cancelDownload(download.episodeId)}>
+                  <ThemedText type="small" themeColor="accent">
+                    Cancel
                   </ThemedText>
                 </Pressable>
               ) : null}

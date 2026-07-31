@@ -88,7 +88,7 @@ export default function RootLayout() {
       router.replace(href);
       return;
     }
-    if (!hasCheckedOfflineLaunch.current && isConnected !== null) {
+    if (!hasCheckedOfflineLaunch.current && isConnected !== null && segments.length > 0) {
       hasCheckedOfflineLaunch.current = true;
       const offlineHref = resolveOfflineLaunchRedirect({ isConnected, segments });
       if (offlineHref) {
