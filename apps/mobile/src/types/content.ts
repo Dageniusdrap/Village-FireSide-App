@@ -22,8 +22,14 @@ export type Series = {
 export type Destination = {
   id: string;
   name: string;
+  slug: string;
   region: string | null;
+  district: string | null;
+  country: string | null;
   coverImageUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  categories: string[];
 };
 
 export type ContributorType =
