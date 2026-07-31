@@ -1,7 +1,7 @@
 import NetInfo from "@react-native-community/netinfo";
 
 import { resolveRemoteEpisodeSource } from "@/lib/resolve-episode-source";
-import { downloadEpisodeFile } from "@/lib/download-file";
+import { cancelEpisodeDownload, downloadEpisodeFile } from "@/lib/download-file";
 import { getAllDownloads, getDownload, insertDownload, deleteDownload } from "@/lib/downloads-db";
 import { useSettingsStore } from "@/stores/settings-store";
 import { usePlayerStore, type QueueEpisode } from "@/stores/player-store";
@@ -38,6 +38,7 @@ jest.mock("@/lib/download-file", () => ({
   downloadEpisodeFile: jest.fn(),
   deleteEpisodeFile: jest.fn(),
   cleanupOrphanedDownloads: jest.fn(),
+  cancelEpisodeDownload: jest.fn(),
 }));
 jest.mock("@/lib/downloads-db", () => ({
   getAllDownloads: jest.fn(() => []),
@@ -50,6 +51,7 @@ const mockFetch = NetInfo.fetch as jest.Mock;
 const mockAddEventListener = NetInfo.addEventListener as jest.Mock;
 const mockResolveRemote = resolveRemoteEpisodeSource as jest.Mock;
 const mockDownloadFile = downloadEpisodeFile as jest.Mock;
+const mockCancelEpisodeDownload = cancelEpisodeDownload as jest.Mock;
 const mockGetAllDownloads = getAllDownloads as jest.Mock;
 const mockGetDownload = getDownload as jest.Mock;
 
@@ -92,6 +94,7 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockResolveRemote.mockReset();
   mockDownloadFile.mockReset();
+  mockCancelEpisodeDownload.mockReset();
   mockGetAllDownloads.mockReset();
   mockGetDownload.mockReset();
   (insertDownload as jest.Mock).mockReset();
@@ -144,6 +147,36 @@ describe("useDownloadQueueStore", () => {
     useDownloadQueueStore.getState().retry("ep-1");
     await flush();
     expect(useDownloadQueueStore.getState().entries["ep-1"]?.status).toBe("downloaded");
+  });
+
+  it("cancel aborts an in-flight download, and its rejection never persists a row", async () => {
+    mockResolveRemote.mockResolvedValue({ type: "remote", url: "https://example.com/ep-1.m4a" });
+    let rejectDownload!: (error: Error) => void;
+    mockDownloadFile.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectDownload = reject;
+      }),
+    );
+
+    await useDownloadQueueStore.getState().enqueue(episode);
+    await flush();
+    expect(useDownloadQueueStore.getState().entries["ep-1"]?.status).toBe("downloading");
+
+    useDownloadQueueStore.getState().cancel("ep-1");
+
+    // cancel() removes the entry and aborts the in-flight task immediately —
+    // it does not wait for downloadEpisodeFile's promise to settle.
+    expect(mockCancelEpisodeDownload).toHaveBeenCalledWith("ep-1");
+    expect(useDownloadQueueStore.getState().entries["ep-1"]).toBeUndefined();
+
+    // DownloadTask.cancel() rejects the pending downloadAsync() promise
+    // (per expo-file-system's own documented contract) — simulate that
+    // rejection arriving after cancel() already ran.
+    rejectDownload(new Error("cancelled"));
+    await flush();
+
+    expect(insertDownload).not.toHaveBeenCalled();
+    expect(useDownloadQueueStore.getState().entries["ep-1"]).toBeUndefined();
   });
 
   it("pauses for wifi-only on cellular and resumes when wifi becomes available", async () => {

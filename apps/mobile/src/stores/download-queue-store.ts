@@ -2,6 +2,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { create } from "zustand";
 
 import {
+  cancelEpisodeDownload,
   cleanupOrphanedDownloads,
   deleteEpisodeFile,
   downloadEpisodeFile,
@@ -205,6 +206,10 @@ export const useDownloadQueueStore = create<DownloadQueueState>((set, get) => {
     },
 
     cancel: (episodeId) => {
+      // No-op if nothing is actually downloading for this episode yet
+      // (e.g. it's only "queued") — safe to call unconditionally
+      // regardless of the entry's current status.
+      cancelEpisodeDownload(episodeId);
       set((state) => {
         const next = { ...state.entries };
         delete next[episodeId];

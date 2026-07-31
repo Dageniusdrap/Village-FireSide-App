@@ -1,4 +1,4 @@
-import { Directory, File, Paths } from "expo-file-system";
+import { Directory, DownloadTask, File, Paths } from "expo-file-system";
 
 // downloads-db.ts stores `localPath` bare (no `file://` prefix — the
 // same contract player-store.ts's local-source branch already depends
@@ -26,6 +26,11 @@ function extensionFromUrl(url: string): string {
   return match ? match[0] : ".m4a";
 }
 
+// Tracks the task + temp file for every currently-downloading episode, so
+// cancelEpisodeDownload can abort the right native task and clean up its
+// partial file without either function needing the other's internals.
+const inFlightDownloads = new Map<string, { task: DownloadTask; tempFile: File }>();
+
 export async function downloadEpisodeFile(
   episodeId: string,
   url: string,
@@ -41,21 +46,47 @@ export async function downloadEpisodeFile(
     },
   });
 
-  const downloaded = await task.downloadAsync();
-  if (!downloaded) {
-    throw new Error(`Failed to download episode ${episodeId}`);
-  }
+  inFlightDownloads.set(episodeId, { task, tempFile });
+  try {
+    // If cancelEpisodeDownload calls task.cancel() while this is pending,
+    // downloadAsync() rejects (expo-file-system's documented contract) —
+    // this throws before reaching the move-to-final-path step below, so a
+    // cancelled download can never produce a finished file or return value.
+    const downloaded = await task.downloadAsync();
+    if (!downloaded) {
+      throw new Error(`Failed to download episode ${episodeId}`);
+    }
 
-  const finalFile = new File(dir, `${episodeId}${extensionFromUrl(url)}`);
-  if (finalFile.exists) {
-    finalFile.delete();
-  }
-  // .move() updates `downloaded`'s own `.uri` in place to point at the
-  // new location — read `.uri`/`.size` off `downloaded` afterward, not
-  // off `finalFile`.
-  await downloaded.move(finalFile);
+    const finalFile = new File(dir, `${episodeId}${extensionFromUrl(url)}`);
+    if (finalFile.exists) {
+      finalFile.delete();
+    }
+    // .move() updates `downloaded`'s own `.uri` in place to point at the
+    // new location — read `.uri`/`.size` off `downloaded` afterward, not
+    // off `finalFile`.
+    await downloaded.move(finalFile);
 
-  return { localPath: toBarePath(downloaded.uri), fileSize: downloaded.size };
+    return { localPath: toBarePath(downloaded.uri), fileSize: downloaded.size };
+  } finally {
+    inFlightDownloads.delete(episodeId);
+  }
+}
+
+// No-op if nothing is currently downloading for this episode (e.g. it's
+// only "queued", already finished, or errored) — safe to call
+// unconditionally from the store's cancel action. Deletes whatever
+// partial ".tmp" file the aborted transfer left behind, so a cancelled
+// download never lingers on disk or blocks a future retry of the same
+// episode.
+export function cancelEpisodeDownload(episodeId: string): void {
+  const inFlight = inFlightDownloads.get(episodeId);
+  if (!inFlight) {
+    return;
+  }
+  inFlight.task.cancel();
+  if (inFlight.tempFile.exists) {
+    inFlight.tempFile.delete();
+  }
 }
 
 export function deleteEpisodeFile(localPath: string): void {
