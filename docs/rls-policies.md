@@ -83,9 +83,40 @@ pattern every other content table uses.
 
 ### `booking_inquiries`
 
-- **Anyone can insert** (`booking_inquiries_insert_anyone`): `WITH CHECK
-(true)` — including unauthenticated guests, so someone doesn't need an
-  account to ask about a trip.
+- **Anyone can insert** (`booking_inquiries_insert_anyone`) — including
+  unauthenticated guests, so someone doesn't need an account to ask about
+  a trip. The `WITH CHECK` clause constrains what an inserted row can
+  actually contain:
+  `status = 'new' and (user_id is null or user_id = auth.uid())`.
+  - `status = 'new'`: the client's insert payload never includes `status`
+    at all (`apps/mobile/src/app/(app)/destination/[slug]/inquire.tsx`),
+    so the column's own `default 'new'` fills it in and this check passes
+    trivially for every legitimate submission. It exists to reject, not
+    silently correct, a payload that explicitly tries a different value.
+  - `user_id is null or user_id = auth.uid()`: a guest (no session,
+    `auth.uid()` is null) can only submit with `user_id` null; a
+    signed-in caller can only attribute the inquiry to their own account,
+    never someone else's.
+  - **History:** this table's original policy (`with check (true)`,
+    `supabase/migrations/20260721150500_rls_policies.sql`) placed no
+    constraint on either column — anyone could insert with `status` set to
+    e.g. `'closed'`, or `user_id` set to any other real profile id,
+    spoofing an inquiry's attribution. That was low-risk while nothing in
+    the app actually called this endpoint; Prompt 11 (the Explore tab's
+    Booking Inquiry form) made it publicly reachable for the first time,
+    which is what prompted tightening it in
+    `supabase/migrations/20260801100000_tighten_booking_inquiries_insert_check.sql`.
+  - **Manual verification:** `supabase/tests/booking_inquiries_insert_check.sql`
+    has runnable SQL covering the two rejection cases (spoofed `status`,
+    spoofed `user_id`) and the two acceptance cases (guest and signed-in,
+    both submitting the legitimate shape). This project has no automated
+    RLS test harness yet — no pgTAP runner is wired into `pnpm test` or
+    CI, and there's no local Postgres/Supabase CLI available to execute
+    against in this environment — so it's a manual script, not an
+    automated test. Prompt 18 ("Security & RLS Audit," see
+    `docs/PROMPT_PACK.md`) is explicitly where this project plans to add
+    pgTAP-based RLS testing; when that lands, this file's four cases are
+    the natural first `throws_ok()`/`lives_ok()` assertions to port over.
 - **Admin select/update** (`booking_inquiries_admin_select`,
   `booking_inquiries_admin_update`): only `is_admin()` can read or update
   inquiries (e.g. changing `status` as staff follow up). There's no

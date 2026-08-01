@@ -143,12 +143,20 @@ create policy transactions_select_own
   using (auth.uid() = user_id);
 
 -- booking_inquiries: anyone (including guests) can submit an inquiry;
--- only admins can read or update them.
+-- only admins can read or update them. status must be left at its column
+-- default ('new') — not settable to anything else via the insert payload
+-- — and user_id must be null (guest) or the caller's own id, never someone
+-- else's. See 20260801100000_tighten_booking_inquiries_insert_check.sql for
+-- why (this definition was corrected in place to match, since that
+-- migration only has the applyable ALTER POLICY form).
 alter table booking_inquiries enable row level security;
 
 create policy booking_inquiries_insert_anyone
   on booking_inquiries for insert
-  with check (true);
+  with check (
+    status = 'new'
+    and (user_id is null or user_id = auth.uid())
+  );
 
 create policy booking_inquiries_admin_select
   on booking_inquiries for select
