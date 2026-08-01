@@ -45,3 +45,12 @@ export const resetPasswordSchema = z.object({
   password: passwordSchema,
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const bookingInquirySchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  phone: z.string().trim().min(1, "Phone number is required"),
+  email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
+  preferredDate: z.string().optional(),
+  message: z.string().trim().min(1, "Tell us a bit about your trip"),
+});
+export type BookingInquiryInput = z.infer<typeof bookingInquirySchema>;

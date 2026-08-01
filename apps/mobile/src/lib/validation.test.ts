@@ -1,4 +1,5 @@
 import {
+  bookingInquirySchema,
   emailSchema,
   forgotPasswordSchema,
   localPhoneNumberSchema,
@@ -105,5 +106,44 @@ describe("forgotPasswordSchema", () => {
 describe("resetPasswordSchema", () => {
   it("accepts an 8-character password", () => {
     expect(resetPasswordSchema.safeParse({ password: "12345678" }).success).toBe(true);
+  });
+});
+
+describe("bookingInquirySchema", () => {
+  const valid = {
+    name: "Amina Nakato",
+    phone: "0772123456",
+    email: "amina@example.com",
+    preferredDate: "2026-08-15",
+    message: "We'd like a 3-day trip for a family of four.",
+  };
+
+  it("accepts a fully filled valid inquiry", () => {
+    expect(bookingInquirySchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("accepts email and preferredDate omitted", () => {
+    const { email, preferredDate, ...rest } = valid;
+    expect(bookingInquirySchema.safeParse(rest).success).toBe(true);
+  });
+
+  it("rejects a missing name", () => {
+    const result = bookingInquirySchema.safeParse({ ...valid, name: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing phone", () => {
+    const result = bookingInquirySchema.safeParse({ ...valid, phone: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing message", () => {
+    const result = bookingInquirySchema.safeParse({ ...valid, message: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a malformed email", () => {
+    const result = bookingInquirySchema.safeParse({ ...valid, email: "not-an-email" });
+    expect(result.success).toBe(false);
   });
 });
