@@ -123,7 +123,7 @@ describe("bookingInquirySchema", () => {
   });
 
   it("accepts email and preferredDate omitted", () => {
-    const { email, preferredDate, ...rest } = valid;
+    const { email: _email, preferredDate: _preferredDate, ...rest } = valid;
     expect(bookingInquirySchema.safeParse(rest).success).toBe(true);
   });
 

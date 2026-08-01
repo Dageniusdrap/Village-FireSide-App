@@ -20,6 +20,7 @@ export default function DestinationDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const query = useDestinationDetail(slug);
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
 
   if (query.isLoading) {
     return (
@@ -40,7 +41,6 @@ export default function DestinationDetailScreen() {
   }
 
   const destination = query.data;
-  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
 
   return (
     <SafeAreaView style={styles.safeArea}>
