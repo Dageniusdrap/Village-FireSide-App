@@ -19,6 +19,17 @@ import { type BookingInquiryInput, bookingInquirySchema } from "@/lib/validation
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth-store";
 
+// Formats a Date using its LOCAL calendar day (not UTC). `toISOString()`
+// converts to UTC first, which shifts the calendar day for any timezone
+// offset that crosses midnight — e.g. in Uganda (EAT, UTC+3) any local time
+// before 03:00 would serialize to the previous day.
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function BookingInquiryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const destinationQuery = useDestinationDetail(slug);
@@ -135,7 +146,7 @@ export default function BookingInquiryScreen() {
 
         <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
           <ThemedText type="default">
-            {preferredDate ? preferredDate.toISOString().slice(0, 10) : "Preferred date (optional)"}
+            {preferredDate ? formatLocalDate(preferredDate) : "Preferred date (optional)"}
           </ThemedText>
         </Pressable>
         {showDatePicker ? (
@@ -147,7 +158,7 @@ export default function BookingInquiryScreen() {
               setShowDatePicker(false);
               if (date) {
                 setPreferredDate(date);
-                setValue("preferredDate", date.toISOString().slice(0, 10));
+                setValue("preferredDate", formatLocalDate(date));
               }
             }}
           />
