@@ -1,9 +1,11 @@
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, StyleSheet } from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
+import { VideoModal } from "@/components/video-modal";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { DestinationCard } from "@/components/ui/destination-card";
@@ -38,6 +40,7 @@ export default function DestinationDetailScreen() {
   }
 
   const destination = query.data;
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -49,6 +52,32 @@ export default function DestinationDetailScreen() {
             style={styles.cover}
             contentFit="cover"
           />
+        ) : null}
+        {destination.media.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.row}
+          >
+            {destination.media.map((item) =>
+              item.type === "image" ? (
+                <Image
+                  key={item.id}
+                  source={{ uri: item.url }}
+                  style={styles.galleryImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <Pressable key={item.id} onPress={() => setActiveVideoUrl(item.url)}>
+                  <View style={[styles.galleryImage, styles.videoThumbnail]}>
+                    <ThemedText type="default" themeColor="background">
+                      ▶ Play
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              ),
+            )}
+          </ScrollView>
         ) : null}
         <ThemedText type="title">{destination.name}</ThemedText>
         {destination.region || destination.country ? (
@@ -123,6 +152,9 @@ export default function DestinationDetailScreen() {
           </ScrollView>
         )}
       </ScrollView>
+      {activeVideoUrl ? (
+        <VideoModal url={activeVideoUrl} onClose={() => setActiveVideoUrl(null)} />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -142,5 +174,15 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: Spacing.three,
+  },
+  galleryImage: {
+    width: 160,
+    height: 120,
+    borderRadius: Spacing.two,
+  },
+  videoThumbnail: {
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
