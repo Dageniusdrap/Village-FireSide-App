@@ -21,6 +21,7 @@ export default function AppLayout() {
         <Stack.Screen name="series/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="contributor/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="cultural-group/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="destination/[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="coins" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
