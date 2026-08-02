@@ -106,17 +106,34 @@ pattern every other content table uses.
     Booking Inquiry form) made it publicly reachable for the first time,
     which is what prompted tightening it in
     `supabase/migrations/20260801100000_tighten_booking_inquiries_insert_check.sql`.
-  - **Manual verification:** `supabase/tests/booking_inquiries_insert_check.sql`
-    has runnable SQL covering the two rejection cases (spoofed `status`,
-    spoofed `user_id`) and the two acceptance cases (guest and signed-in,
-    both submitting the legitimate shape). This project has no automated
-    RLS test harness yet — no pgTAP runner is wired into `pnpm test` or
-    CI, and there's no local Postgres/Supabase CLI available to execute
+  - **Manual verification:** `supabase/manual-checks/booking_inquiries_insert_check.sql`
+    has six runnable SQL cases, each plain SQL in its own
+    `BEGIN ... ROLLBACK`, with a comment stating the expected outcome to
+    check by eye against the actual `psql` output (`INSERT 0 1` vs. an
+    RLS-violation `ERROR`): three rejection cases — spoofed `status`, a
+    guest spoofing a non-null `user_id` (the one case that depends on
+    `WITH CHECK` rejecting a `NULL`-valued expression rather than a
+    `false` one, since `auth.uid()` is null for an anon request), and an
+    authenticated caller spoofing someone else's `user_id` — plus three
+    acceptance cases (guest and signed-in, both submitting the legitimate
+    shape, and signed-in with `status` omitted, matching the real client's
+    payload exactly). Deliberately **not** under `supabase/tests/` — that
+    path is the Supabase CLI's reserved pgTAP directory
+    (`supabase test db` globs it), and this script would break that
+    runner the moment it exists. This project has no automated RLS test
+    harness yet at all — no pgTAP runner is wired into `pnpm test` or CI,
+    and there's no local Postgres/Supabase CLI available to execute
     against in this environment — so it's a manual script, not an
     automated test. Prompt 18 ("Security & RLS Audit," see
     `docs/PROMPT_PACK.md`) is explicitly where this project plans to add
-    pgTAP-based RLS testing; when that lands, this file's four cases are
-    the natural first `throws_ok()`/`lives_ok()` assertions to port over.
+    pgTAP-based RLS testing; when that lands, this file's six cases are
+    the natural first `throws_ok()`/`lives_ok()` assertions to port into
+    `supabase/tests/`.
+  - **Known open gaps, not closed by this fix:** the insert endpoint is
+    still unauthenticated, unrate-limited, and has no length bound on
+    `message`/`name`/etc. — someone could flood the table or submit very
+    large payloads. Pre-existing, out of scope here, and Prompt 18
+    territory alongside the RLS test harness above.
 - **Admin select/update** (`booking_inquiries_admin_select`,
   `booking_inquiries_admin_update`): only `is_admin()` can read or update
   inquiries (e.g. changing `status` as staff follow up). There's no
