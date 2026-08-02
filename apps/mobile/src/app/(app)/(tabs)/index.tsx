@@ -11,6 +11,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { SeriesCard } from "@/components/ui/series-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
+import { useCulturalGroupsEnabled } from "@/hooks/queries/use-app-settings";
 import {
   useCategoryRail,
   useContinueListening,
@@ -96,6 +97,7 @@ export default function HomeScreen() {
   const elderVoicesSeries = useElderVoicesSeries();
   const continueListening = useContinueListening();
   const culturalGroups = useCulturalGroups();
+  const culturalGroupsEnabled = useCulturalGroupsEnabled();
   const storytellers = useStorytellers();
 
   const goToSeries = (id: string) => router.push(`/series/${id}`);
@@ -154,28 +156,32 @@ export default function HomeScreen() {
           />
         ))}
 
-        <SectionHeader title="Peoples & Kingdoms" />
-        {culturalGroups.isLoading ? (
-          <Skeleton width="100%" height={140} />
-        ) : !culturalGroups.data || culturalGroups.data.length === 0 ? (
-          <EmptyState title="Nothing here yet" body="Check back soon for new cultures." />
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.row}
-          >
-            {culturalGroups.data.map((group) => (
-              <DestinationCard
-                key={group.id}
-                name={group.name}
-                region={group.region}
-                coverImageUrl={group.coverImageUrl}
-                onPress={() => goToCulturalGroup(group.id)}
-              />
-            ))}
-          </ScrollView>
-        )}
+        {culturalGroupsEnabled ? (
+          <>
+            <SectionHeader title="Peoples & Kingdoms" />
+            {culturalGroups.isLoading ? (
+              <Skeleton width="100%" height={140} />
+            ) : !culturalGroups.data || culturalGroups.data.length === 0 ? (
+              <EmptyState title="Nothing here yet" body="Check back soon for new cultures." />
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.row}
+              >
+                {culturalGroups.data.map((group) => (
+                  <DestinationCard
+                    key={group.id}
+                    name={group.name}
+                    region={group.region}
+                    coverImageUrl={group.coverImageUrl}
+                    onPress={() => goToCulturalGroup(group.id)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </>
+        ) : null}
 
         <SectionHeader title="Meet the Storytellers" />
         {storytellers.isLoading ? (
