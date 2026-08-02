@@ -7,20 +7,16 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 export async function approveTeacherRequest(requestId: string, userId: string) {
   const supabase = createServiceRoleClient();
 
-  const { error: roleError } = await supabase
-    .from("profiles")
-    .update({ role: "teacher" })
-    .eq("id", userId);
-  if (roleError) {
-    throw roleError;
-  }
-
-  const { error: statusError } = await supabase
-    .from("teacher_requests")
-    .update({ status: "approved" })
-    .eq("id", requestId);
-  if (statusError) {
-    throw statusError;
+  // Atomic: profiles.role and teacher_requests.status are updated inside
+  // one Postgres transaction (approve_teacher_request_function.sql), so a
+  // failure partway through never leaves a profile promoted to 'teacher'
+  // with its request still 'pending'.
+  const { error } = await supabase.rpc("approve_teacher_request", {
+    p_request_id: requestId,
+    p_user_id: userId,
+  });
+  if (error) {
+    throw error;
   }
 
   revalidatePath("/teacher-requests");
