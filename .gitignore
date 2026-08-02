@@ -33,3 +33,6 @@ pnpm-debug.log*
 
 # misc
 *.tsbuildinfo
+
+# Supabase CLI local link cache (project ref, pooler URL, version info)
+supabase/.temp/
