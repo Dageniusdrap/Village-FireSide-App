@@ -71,6 +71,9 @@ type ContinueListeningRow = {
     duration_seconds: number | null;
     access_tier: Episode["accessTier"];
     content_source: Episode["contentSource"];
+    subject_area: Episode["subjectArea"];
+    grade_level: Episode["gradeLevel"];
+    syllabus_topic: string | null;
   } | null;
 };
 
@@ -87,7 +90,7 @@ export function useContinueListening() {
       const { data, error } = await supabase
         .from("listening_progress")
         .select(
-          "position_seconds, episodes(id, title, duration_seconds, access_tier, content_source)",
+          "position_seconds, episodes(id, title, duration_seconds, access_tier, content_source, subject_area, grade_level, syllabus_topic)",
         )
         .eq("user_id", session.user.id)
         .eq("completed", false)
@@ -111,6 +114,9 @@ export function useContinueListening() {
           durationSeconds: row.episodes.duration_seconds,
           accessTier: row.episodes.access_tier,
           contentSource: row.episodes.content_source,
+          subjectArea: row.episodes.subject_area,
+          gradeLevel: row.episodes.grade_level,
+          syllabusTopic: row.episodes.syllabus_topic,
         }));
     },
   });

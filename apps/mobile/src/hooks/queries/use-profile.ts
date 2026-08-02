@@ -8,6 +8,8 @@ export type ProfileSummary = {
   coinBalance: number;
   isPremium: boolean;
   premiumExpiresAt: string | null;
+  role: "listener" | "teacher" | "guide" | "admin";
+  country: string | null;
 };
 
 export function profileQueryKey(userId: string | null) {
@@ -26,7 +28,7 @@ export function useProfile() {
       }
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, coin_balance, is_premium, premium_expires_at")
+        .select("display_name, coin_balance, is_premium, premium_expires_at, role, country")
         .eq("id", session.user.id)
         .single();
       if (error) {
@@ -37,6 +39,8 @@ export function useProfile() {
         coinBalance: data.coin_balance,
         isPremium: data.is_premium,
         premiumExpiresAt: data.premium_expires_at,
+        role: data.role,
+        country: data.country,
       };
     },
   });

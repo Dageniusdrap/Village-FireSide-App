@@ -3,12 +3,20 @@ export type ContentSource =
 
 export type AccessTier = "free" | "coins" | "premium";
 
+export type SubjectArea =
+  "history" | "biology" | "geography" | "culture" | "conservation" | "folklore";
+
+export type GradeLevel = "primary" | "o_level" | "a_level" | "tertiary" | "general";
+
 export type Episode = {
   id: string;
   title: string;
   durationSeconds: number | null;
   accessTier: AccessTier;
   contentSource: ContentSource;
+  subjectArea: SubjectArea | null;
+  gradeLevel: GradeLevel | null;
+  syllabusTopic: string | null;
 };
 
 export type Series = {
