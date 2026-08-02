@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { FormError } from "@/components/form-error";
 import { ThemedText } from "@/components/themed-text";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
@@ -19,15 +20,22 @@ export default function TeacherClassesScreen() {
   const { createClass } = useCreateClass();
   const [newClassName, setNewClassName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [apiError, setApiError] = useState<string | undefined>();
 
   const onCreate = async () => {
     if (!newClassName.trim()) {
       return;
     }
     setIsCreating(true);
-    await createClass({ name: newClassName.trim() });
-    setNewClassName("");
-    setIsCreating(false);
+    setApiError(undefined);
+    try {
+      await createClass({ name: newClassName.trim() });
+      setNewClassName("");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Could not create the class.");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -49,9 +57,12 @@ export default function TeacherClassesScreen() {
             disabled={isCreating || !newClassName.trim()}
           />
         </View>
+        <FormError message={apiError} />
 
         {query.isLoading ? (
           <Skeleton width="100%" height={100} />
+        ) : query.isError ? (
+          <EmptyState title="Couldn't load classes" body="Please try again later." />
         ) : !query.data || query.data.length === 0 ? (
           <EmptyState title="No classes yet" body="Create a class above to get a join code." />
         ) : (
