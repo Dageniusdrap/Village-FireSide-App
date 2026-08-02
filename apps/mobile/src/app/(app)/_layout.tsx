@@ -28,6 +28,7 @@ export default function AppLayout() {
         <Stack.Screen name="learn/teacher-request" options={{ headerShown: false }} />
         <Stack.Screen name="learn/teacher" options={{ headerShown: false }} />
         <Stack.Screen name="learn/teacher/class/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="learn/join-class" options={{ headerShown: false }} />
         <Stack.Screen name="coins" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
