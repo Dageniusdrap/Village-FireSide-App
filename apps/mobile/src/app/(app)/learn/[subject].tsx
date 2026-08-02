@@ -12,7 +12,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GRADE_LEVELS, SUBJECT_AREAS } from "@/constants/learn";
 import { Spacing } from "@/constants/theme";
-import { useAppSetting, useCulturalGroupsEnabled } from "@/hooks/queries/use-app-settings";
+import { useCulturalGroupsEnabled } from "@/hooks/queries/use-app-settings";
 import { useCulturalGroups } from "@/hooks/queries/use-home-sections";
 import { useSubjectEpisodes } from "@/hooks/queries/use-subject-episodes";
 import { matchesLearnFilters } from "@/lib/learn-filter";
