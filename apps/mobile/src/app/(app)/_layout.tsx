@@ -24,6 +24,7 @@ export default function AppLayout() {
         <Stack.Screen name="destination/[slug]" options={{ headerShown: false }} />
         <Stack.Screen name="destination/[slug]/inquire" options={{ headerShown: false }} />
         <Stack.Screen name="episode/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="learn/[subject]" options={{ headerShown: false }} />
         <Stack.Screen name="coins" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
