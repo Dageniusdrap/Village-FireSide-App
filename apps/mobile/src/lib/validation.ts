@@ -54,3 +54,11 @@ export const bookingInquirySchema = z.object({
   message: z.string().trim().min(1, "Tell us a bit about your trip"),
 });
 export type BookingInquiryInput = z.infer<typeof bookingInquirySchema>;
+
+export const teacherRequestSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  school: z.string().trim().min(1, "School is required"),
+  district: z.string().trim().min(1, "District is required"),
+  phone: z.string().trim().min(1, "Phone number is required"),
+});
+export type TeacherRequestInput = z.infer<typeof teacherRequestSchema>;

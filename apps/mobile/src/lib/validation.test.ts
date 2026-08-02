@@ -9,6 +9,7 @@ import {
   resetPasswordSchema,
   signInSchema,
   signUpSchema,
+  teacherRequestSchema,
 } from "./validation";
 
 describe("emailSchema", () => {
@@ -145,5 +146,34 @@ describe("bookingInquirySchema", () => {
   it("rejects a malformed email", () => {
     const result = bookingInquirySchema.safeParse({ ...valid, email: "not-an-email" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("teacherRequestSchema", () => {
+  const valid = {
+    name: "Grace Nakimuli",
+    school: "Kololo Primary School",
+    district: "Kampala",
+    phone: "0772123456",
+  };
+
+  it("accepts a fully filled valid request", () => {
+    expect(teacherRequestSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejects a missing name", () => {
+    expect(teacherRequestSchema.safeParse({ ...valid, name: "" }).success).toBe(false);
+  });
+
+  it("rejects a missing school", () => {
+    expect(teacherRequestSchema.safeParse({ ...valid, school: "" }).success).toBe(false);
+  });
+
+  it("rejects a missing district", () => {
+    expect(teacherRequestSchema.safeParse({ ...valid, district: "" }).success).toBe(false);
+  });
+
+  it("rejects a missing phone", () => {
+    expect(teacherRequestSchema.safeParse({ ...valid, phone: "" }).success).toBe(false);
   });
 });
