@@ -82,3 +82,25 @@ future marketing-site effort.
 **Severity:** Sharing works today for app-to-app use (an existing user
 sharing with another existing user). Non-user recipients get a dead
 link until the domain infrastructure above exists.
+
+### Push token registration cannot succeed until an EAS project is configured
+
+`apps/mobile/src/lib/push-token-registration.ts`'s `registerPushToken` calls
+`Notifications.getExpoPushTokenAsync()`, which needs an EAS project ID —
+either `app.json`'s `extra.eas.projectId` or a linked `eas.json` — neither
+of which exists anywhere in this repo (confirmed by grepping the whole
+repo). Until that infra exists, the call throws
+`ERR_NOTIFICATIONS_NO_EXPERIENCE_ID` every time; per the package's own doc
+comment it can also reject when the device is offline, independent of the
+EAS-config gap. `registerPushToken` and
+`requestNotificationPermissionAndRegister` now wrap their bodies in
+try/catch, so this fails silently (no unhandled-rejection warnings, no
+crash) rather than surfacing to the user — but no token will ever reach the
+`push_tokens` table until an EAS project is configured.
+
+**Fix shape:** configure an EAS project (`eas init`, or manually set
+`app.json`'s `extra.eas.projectId`), then verify `registerPushToken`
+succeeds against a real device/build.
+
+**Severity:** Low today (nothing sends real notifications yet). Blocks the
+push-notification feature entirely until EAS is configured.
