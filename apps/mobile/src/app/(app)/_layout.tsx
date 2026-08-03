@@ -18,6 +18,7 @@ export default function AppLayout() {
     <View style={styles.container}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="search" options={{ headerShown: false }} />
         <Stack.Screen name="series/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="contributor/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="cultural-group/[id]" options={{ headerShown: false }} />
