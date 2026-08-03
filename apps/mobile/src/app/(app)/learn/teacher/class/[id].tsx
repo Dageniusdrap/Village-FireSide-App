@@ -36,6 +36,15 @@ export default function ClassDetailScreen() {
     setIsAssigning(false);
   };
 
+  if (query.isError) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <BackButton />
+        <EmptyState title="Couldn't load this class" body="Please try again later." />
+      </SafeAreaView>
+    );
+  }
+
   if (query.isLoading || !query.data) {
     return (
       <SafeAreaView style={styles.safeArea}>
