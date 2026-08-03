@@ -74,6 +74,7 @@ export default function SearchScreen() {
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`Search again for ${recent}`}
+                  hitSlop={Spacing.two}
                 >
                   <ThemedText type="default">{recent}</ThemedText>
                 </Pressable>
@@ -93,6 +94,7 @@ export default function SearchScreen() {
                     onPress={() => router.push(`/series/${result.id}`)}
                     accessibilityRole="button"
                     accessibilityLabel={`Open series ${result.title}`}
+                    hitSlop={Spacing.two}
                   >
                     <ThemedText type="default">{result.title}</ThemedText>
                   </Pressable>
@@ -108,6 +110,7 @@ export default function SearchScreen() {
                     onPress={() => router.push(`/episode/${result.id}`)}
                     accessibilityRole="button"
                     accessibilityLabel={`Open episode ${result.title}`}
+                    hitSlop={Spacing.two}
                   >
                     <ThemedText type="default">{result.title}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -126,6 +129,7 @@ export default function SearchScreen() {
                     onPress={() => router.push(`/destination/${result.slug}`)}
                     accessibilityRole="button"
                     accessibilityLabel={`Open destination ${result.name}`}
+                    hitSlop={Spacing.two}
                   >
                     <ThemedText type="default">{result.name}</ThemedText>
                   </Pressable>
@@ -141,6 +145,7 @@ export default function SearchScreen() {
                     onPress={() => router.push(`/contributor/${result.id}`)}
                     accessibilityRole="button"
                     accessibilityLabel={`Open contributor ${result.displayName}`}
+                    hitSlop={Spacing.two}
                   >
                     <ThemedText type="default">{result.displayName}</ThemedText>
                   </Pressable>

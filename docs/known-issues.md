@@ -128,3 +128,23 @@ it instead of `.textSearch()`.
 
 **Severity:** Low today (catalogue is small). Will degrade search UX as the
 catalogue grows.
+
+### Accessibility retrofit's `hitSlop` is a standardization, not a 44×44pt guarantee
+
+Tasks 13-16's touch-target accessibility pass (extended in this fix round
+to `ShareButton` and `search.tsx`, both added later in the branch than the
+original task file lists accounted for) applies `hitSlop={Spacing.two}` (an
+8pt expansion) to interactive `Pressable`s across the app. This
+standardizes touch targets to a consistent expansion — it is not the same
+thing as verifying every control meets a literal 44×44pt minimum. A small
+control with an 8pt hitSlop can still fall short of 44×44pt depending on
+its base rendered size. Noting this explicitly so a future contributor
+doesn't assume 44pt compliance was verified when it wasn't.
+
+**Fix shape:** if strict 44×44pt compliance is required (e.g. for an
+accessibility audit), measure each control's rendered size + hitSlop and
+adjust per-control rather than relying on the blanket `Spacing.two`
+convention.
+
+**Severity:** Low. Convention-consistent with the rest of the app; not a
+regression.
