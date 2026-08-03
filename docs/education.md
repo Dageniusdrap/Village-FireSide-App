@@ -8,10 +8,12 @@ by subject/grade/syllabus-topic, and teachers running a class.
 Episodes carry `subject_area`, `grade_level`, and `syllabus_topic`
 (added in Prompt 3's schema, unused until this feature). The Learn tab
 shows the 6 fixed subjects as cards; each subject's screen
-(`/learn/[subject]`) filters by grade level and syllabus topic (both
-derived from the loaded episode set, chip-based multi-select, ANDed
-together — same pattern as the Explore tab's country/category
-filters), plus a cultural-group filter gated per-country (see below).
+(`/learn/[subject]`) filters by grade level (from the static
+`GRADE_LEVELS` constant in `apps/mobile/src/constants/learn.ts`,
+rendered unconditionally) and syllabus topic (derived from the loaded
+episode set) — both chip-based multi-select, ANDed together, same
+pattern as the Explore tab's country/category filters — plus a
+cultural-group filter gated per-country (see below).
 History's screen additionally surfaces `elder_testimony`-sourced
 episodes first, under a "True African History" header.
 
@@ -74,12 +76,28 @@ data (full stop), and never anything beyond what the teacher assigned
 `docs/superpowers/specs/2026-08-02-learn-tab-design.md` for the full
 function body and reasoning.
 
+## `is_class_member()` — why a SECURITY DEFINER helper exists here
+
+`classes_member_select` (a student's ability to see a class they've
+joined) checks membership via a subquery against `class_members`, and
+`class_members_teacher_select` (a teacher's ability to see their
+class's members) checks ownership via a subquery against `classes`.
+Evaluated directly, those two policies reference each other's table
+under RLS and Postgres detects it as infinite recursion (SQLSTATE
+42P17), failing every query against either table. `is_class_member(uuid)`
+is a `SECURITY DEFINER` function that reads `class_members` as its
+owning role, bypassing RLS internally, so `classes_member_select` can
+call it instead of subquerying `class_members` directly — breaking the
+cycle. Only one side of the mutual reference needs this treatment;
+`class_members_teacher_select` is left as a plain `exists (...)` against
+`classes`. See `supabase/migrations/20260802100600_fix_classes_member_select_rls_recursion.sql`.
+
 ## RLS summary
 
 | Table               | Rule                                                                                                                          |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `teacher_requests`  | insert: own row only, `status` fixed to `'pending'`; select/update: admin only                                                |
-| `classes`           | select: the owning teacher, or a joined member; insert: owning teacher only                                                   |
+| `classes`           | select: the owning teacher, or a joined member; insert: owning teacher only, and only if `profiles.role = 'teacher'`          |
 | `class_assignments` | select: owning teacher or a class member; insert: owning teacher only                                                         |
 | `class_members`     | select: owning teacher sees all members, a student sees only their own row; insert: only via `join_class()`, no direct policy |
 
@@ -89,9 +107,11 @@ function body and reasoning.
   spec text. Would need a new `class_members` delete policy
   (`user_id = auth.uid()`) plus a UI entry point.
 - **Teacher role revocation** has no admin action in this spec — only
-  approval does. If built later, `class_episode_listen_counts`'
-  ownership check must also verify the caller currently holds
-  `profiles.role = 'teacher'`, not just `teacher_id = auth.uid()` —
-  otherwise someone demoted away from the role could still pull listen
-  counts for classes they created while they held it. See the design
-  spec's "Known limitations" section for the exact SQL.
+  approval does. `class_episode_listen_counts`' ownership check already
+  verifies the caller currently holds `profiles.role = 'teacher'` (not
+  just `teacher_id = auth.uid()`), and `classes_teacher_insert` requires
+  the same, so someone demoted away from the role can no longer create
+  new classes or pull listen counts for classes they created while they
+  held it — see
+  `supabase/migrations/20260802100900_enforce_teacher_role_server_side.sql`.
+  A revocation admin action itself still doesn't exist.
