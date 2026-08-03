@@ -8,6 +8,7 @@ import { ThemedView } from "@/components/themed-view";
 import { BackButton } from "@/components/ui/back-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
 import { useGlobalSearch } from "@/hooks/queries/use-global-search";
 import { useSearchHistoryStore } from "@/stores/search-history-store";
@@ -82,8 +83,14 @@ export default function SearchScreen() {
             )}
           </>
         ) : query.isError ? (
-          <EmptyState title="Couldn't search" body="Please try again." />
-        ) : query.isLoading ? null : (
+          <EmptyState
+            title="Couldn't search"
+            body="Please try again."
+            onRetry={() => query.refetch()}
+          />
+        ) : query.isLoading ? (
+          <Skeleton width="100%" height={100} />
+        ) : (
           <>
             {query.data && query.data.series.length > 0 ? (
               <>
