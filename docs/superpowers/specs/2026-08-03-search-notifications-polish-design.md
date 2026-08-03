@@ -323,10 +323,22 @@ needs a new field.
 ### Share buttons
 
 A `ShareButton` component (`apps/mobile/src/components/ui/share-button.tsx`)
-added to episode/series/destination detail screens, building a
-`villagefireside://episode/{id}` (or `/series/{id}`, `/destination/{id}`)
-URL via the existing deep-link scheme and passing it to React Native's
-core `Share.share({ message })`.
+building a `villagefireside://episode/{id}` (or `/series/{id}`,
+`/destination/{id}`) URL via the existing deep-link scheme and passing
+it to React Native's core `Share.share({ message })`.
+
+**Correction found during planning, not assumed away:** the original
+"episode/series/destination detail screens" framing assumed an episode
+detail screen exists. It doesn't — `/episode/[id]` is a silent
+deep-link-resolver redirect with no rendered UI at all, confirmed by
+reading the file in full. Episode-level sharing instead goes on the
+Now Playing overlay (`apps/mobile/src/components/now-playing-overlay.tsx`,
+which already has an action row for the currently-playing episode —
+bookmark, sleep-timer — the closest real analog to "viewing an
+episode"), sharing whichever episode is currently loaded. Series and
+destination sharing go on their actual detail screens
+(`series/[id].tsx`'s existing actions row; `destination/[slug].tsx`,
+after its "Plan Your Visit" button) as originally planned.
 
 **Documented gap, not a silent assumption:** this only works for a
 recipient who already has the app installed. `app.json` has no
