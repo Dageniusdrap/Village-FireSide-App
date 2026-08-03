@@ -104,3 +104,27 @@ succeeds against a real device/build.
 
 **Severity:** Low today (nothing sends real notifications yet). Blocks the
 push-notification feature entirely until EAS is configured.
+
+### Search results aren't ranked by relevance
+
+`supabase/migrations/20260803100200_drop_search_vector_weighting.sql`
+removes the `setweight(...)`-based title/description weighting that
+`20260803100000_search_tsvector_columns.sql` originally built into
+`series`, `episodes`, and `destinations`'s `search_vector` columns, because
+`apps/mobile/src/hooks/queries/use-global-search.ts`'s `.textSearch(...)`
+calls never ordered results by `ts_rank()` — PostgREST can't order by a
+computed `ts_rank()` expression directly, so the weighting was dead code
+implying a ranking guarantee that didn't actually exist. The schema now
+honestly reflects what happens today: results within a type return in
+whatever order Postgres's scan produces, unranked. With 5 or fewer matches
+per type (the current `.limit(5)` on every query) this is invisible, but
+once a type exceeds 5 matches, the best match isn't guaranteed to surface
+first.
+
+**Fix shape:** build a `SECURITY DEFINER` RPC (e.g. `search_series(query
+text)`) that computes and orders by `ts_rank()` server-side, since
+PostgREST can't do so directly, and switch `use-global-search.ts` to call
+it instead of `.textSearch()`.
+
+**Severity:** Low today (catalogue is small). Will degrade search UX as the
+catalogue grows.
