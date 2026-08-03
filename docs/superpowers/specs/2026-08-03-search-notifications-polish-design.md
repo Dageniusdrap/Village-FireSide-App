@@ -427,21 +427,43 @@ reasonable.
 
 Icon and splash are already properly branded (`app.json` — Village
 Fireside name/colors/adaptive-icon layers, not Expo defaults); this
-item is a dead-asset cleanup, not new branding work. Verified by
-grepping every filename across the whole repo (source, `app.json`,
-markdown), not assumed:
+item is a dead-asset cleanup, not new branding work.
+
+**Correction found during planning, not assumed:** an earlier pass of
+this check used a grep exclusion pattern that accidentally hid a real
+usage — `apps/mobile/src/components/animated-icon.tsx`'s
+`AnimatedSplashOverlay` export is **not** dead code. It's imported and
+rendered by `apps/mobile/src/app/_layout.tsx` (the actual root
+layout) as the real native-splash-to-app transition overlay, styled
+with the app's actual brand color (`#208AEF`, matching
+`app.json`'s splash config). Re-verified properly (checking for the
+exact imported name, not just the filename, and without an exclusion
+pattern that could hide a real cross-file reference):
 
 - `react-logo.png`/`react-logo@2x.png`/`react-logo@3x.png` and
-  `tutorial-web.png` — genuinely unreferenced anywhere.
-- `expo-badge.png`/`expo-badge-white.png`/`expo-logo.png` — referenced
-  by two components, `apps/mobile/src/components/web-badge.tsx` and
-  `apps/mobile/src/components/animated-icon.tsx`/`.web.tsx`. Checked
-  whether either component is imported anywhere else in the app:
-  neither is. Both are dead code left over from the Expo Router
-  starter template's default "Made with Expo" badge and animated logo,
-  never wired into any real screen.
+  `tutorial-web.png` — genuinely unreferenced anywhere. Safe to delete.
+- `web-badge.tsx` (a "Made with Expo" version-badge component) is
+  genuinely dead — confirmed not imported anywhere. Its two
+  exclusively-referenced images, `expo-badge.png`/`expo-badge-white.png`,
+  are safe to delete alongside it.
+- `animated-icon.tsx`/`.web.tsx` themselves must **not** be deleted —
+  `AnimatedSplashOverlay` is live. But each file's _second_ export,
+  `AnimatedIcon`, is itself genuinely dead (confirmed unreferenced
+  anywhere, in either the `.tsx` or `.web.tsx` variant) — a leftover
+  from the same starter template, coexisting in the same file as the
+  real splash component. Removing just that unused function (and the
+  keyframes/styles used only by it, not the ones `AnimatedSplashOverlay`
+  shares, like `styles.image`) frees up `logo-glow.png`, which is
+  referenced only inside `AnimatedIcon` in both file variants —
+  confirmed via a dedicated grep for that filename.
 
-Cleanup deletes both dead components and all 7 image files together.
+Net cleanup: delete `web-badge.tsx` and 6 image files
+(`react-logo.png`/`@2x`/`@3x`, `tutorial-web.png`,
+`expo-badge.png`/`expo-badge-white.png`); edit (not delete)
+`animated-icon.tsx`/`.web.tsx` to remove only the dead `AnimatedIcon`
+function, its two files' worth of keyframes/styles used exclusively by
+it, and the `logo-glow.png` file that function alone referenced.
+`expo-logo.png` stays — `AnimatedSplashOverlay` needs it.
 
 ## Known limitations
 
