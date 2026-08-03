@@ -5,6 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
+import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { useBookmarks } from "@/hooks/queries/use-bookmarks";
 import { formatBytes } from "@/lib/format-bytes";
@@ -51,7 +52,7 @@ export default function LibraryScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <SectionHeader title="Library" />
+      <TabHeader title="Library" />
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="default" themeColor="textSecondary">
           Your favorites, downloads, and listening history will show up here.

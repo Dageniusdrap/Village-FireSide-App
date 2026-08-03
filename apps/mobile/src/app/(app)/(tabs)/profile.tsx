@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { SectionHeader } from "@/components/ui/section-header";
+import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { useProfile } from "@/hooks/queries/use-profile";
 import { useAuthStore } from "@/stores/auth-store";
@@ -20,7 +20,7 @@ export default function ProfileScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <SectionHeader title="Profile" />
+        <TabHeader title="Profile" />
         <ThemedText type="default">
           {guestMode ? "Browsing as Guest" : `Signed in as ${profile?.displayName ?? "…"}`}
         </ThemedText>
