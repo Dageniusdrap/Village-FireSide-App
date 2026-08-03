@@ -106,6 +106,9 @@ export default function SignUpScreen() {
           style={styles.primaryButton}
           disabled={isSubmitting}
           onPress={handleSubmit(onSubmit)}
+          accessibilityRole="button"
+          accessibilityLabel="Create Account"
+          hitSlop={Spacing.two}
         >
           <ThemedText type="default" themeColor="background">
             {isSubmitting ? "Creating Account…" : "Create Account"}

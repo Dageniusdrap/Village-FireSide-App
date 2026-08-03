@@ -74,17 +74,32 @@ export default function SignInScreen() {
           style={styles.primaryButton}
           disabled={isSubmitting}
           onPress={handleSubmit(onSubmit)}
+          accessibilityRole="button"
+          accessibilityLabel="Sign In"
+          hitSlop={Spacing.two}
         >
           <ThemedText type="default" themeColor="background">
             {isSubmitting ? "Signing In…" : "Sign In"}
           </ThemedText>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => router.push("/phone-sign-in")}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => router.push("/phone-sign-in")}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in with phone instead"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="linkPrimary">Use phone number instead</ThemedText>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => router.push("/forgot-password")}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => router.push("/forgot-password")}
+          accessibilityRole="button"
+          accessibilityLabel="Forgot Password"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="link">Forgot password?</ThemedText>
         </Pressable>
       </SafeAreaView>

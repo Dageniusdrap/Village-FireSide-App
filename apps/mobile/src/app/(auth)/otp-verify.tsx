@@ -104,13 +104,24 @@ export default function OtpVerifyScreen() {
           style={styles.primaryButton}
           disabled={isSubmitting}
           onPress={handleSubmit(onSubmit)}
+          accessibilityRole="button"
+          accessibilityLabel="Verify"
+          hitSlop={Spacing.two}
         >
           <ThemedText type="default" themeColor="background">
             {isSubmitting ? "Verifying…" : "Verify"}
           </ThemedText>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} disabled={cooldown > 0} onPress={handleResend}>
+        <Pressable
+          style={styles.secondaryButton}
+          disabled={cooldown > 0}
+          onPress={handleResend}
+          accessibilityRole="button"
+          accessibilityLabel="Resend code"
+          accessibilityState={{ disabled: cooldown > 0 }}
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="linkPrimary">
             {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
           </ThemedText>

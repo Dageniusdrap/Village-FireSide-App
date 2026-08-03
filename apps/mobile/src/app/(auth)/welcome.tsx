@@ -18,13 +18,25 @@ export default function WelcomeScreen() {
         <ThemedText type="title">Village Fireside</ThemedText>
         <ThemedText type="default">Stories, told by the people who lived them.</ThemedText>
 
-        <Pressable style={styles.primaryButton} onPress={() => router.push("/sign-in")}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={() => router.push("/sign-in")}
+          accessibilityRole="button"
+          accessibilityLabel="Sign In"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="default" themeColor="background">
             Sign In
           </ThemedText>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={() => router.push("/sign-up")}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => router.push("/sign-up")}
+          accessibilityRole="button"
+          accessibilityLabel="Create Account"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="linkPrimary">Create Account</ThemedText>
         </Pressable>
 
@@ -34,6 +46,9 @@ export default function WelcomeScreen() {
             continueAsGuest();
             router.replace("/");
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Continue as Guest"
+          hitSlop={Spacing.two}
         >
           <ThemedText type="link">Continue as Guest</ThemedText>
         </Pressable>

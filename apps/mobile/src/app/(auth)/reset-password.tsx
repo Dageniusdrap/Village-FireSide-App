@@ -87,6 +87,9 @@ export default function ResetPasswordScreen() {
           style={styles.primaryButton}
           disabled={isSubmitting}
           onPress={handleSubmit(onSubmit)}
+          accessibilityRole="button"
+          accessibilityLabel="Reset Password"
+          hitSlop={Spacing.two}
         >
           <ThemedText type="default" themeColor="background">
             {isSubmitting ? "Saving…" : "Save Password"}

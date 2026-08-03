@@ -61,6 +61,9 @@ export default function PhoneSignInScreen() {
                       field.value === country.dialCode && styles.countryOptionSelected,
                     ]}
                     onPress={() => field.onChange(country.dialCode)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select ${country.name}`}
+                    hitSlop={Spacing.two}
                   >
                     <ThemedText type="small">
                       {country.name} ({country.dialCode})
@@ -92,6 +95,9 @@ export default function PhoneSignInScreen() {
             style={styles.primaryButton}
             disabled={isSubmitting}
             onPress={handleSubmit(onSubmit)}
+            accessibilityRole="button"
+            accessibilityLabel="Send Code"
+            hitSlop={Spacing.two}
           >
             <ThemedText type="default" themeColor="background">
               {isSubmitting ? "Sending Code…" : "Send Code"}

@@ -74,6 +74,9 @@ export default function ForgotPasswordScreen() {
           style={styles.primaryButton}
           disabled={isSubmitting}
           onPress={handleSubmit(onSubmit)}
+          accessibilityRole="button"
+          accessibilityLabel="Send Reset Email"
+          hitSlop={Spacing.two}
         >
           <ThemedText type="default" themeColor="background">
             {isSubmitting ? "Sending…" : "Send Reset Link"}
