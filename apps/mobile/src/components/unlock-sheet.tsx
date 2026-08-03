@@ -76,7 +76,13 @@ export function UnlockSheet() {
         animationType="slide"
         onRequestClose={dismissLockedEpisode}
       >
-        <Pressable style={styles.backdrop} onPress={dismissLockedEpisode}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={dismissLockedEpisode}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss"
+          hitSlop={Spacing.two}
+        >
           <ThemedView style={styles.sheet}>
             <ThemedText type="subtitle">{lockedEpisode?.title}</ThemedText>
             {lockedEpisode?.accessTier === "coins" ? (

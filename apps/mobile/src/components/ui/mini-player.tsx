@@ -51,14 +51,27 @@ export function MiniPlayer() {
   };
 
   return (
-    <Pressable style={[styles.container, { bottom: bottomOffset }]} onPress={expand}>
+    <Pressable
+      style={[styles.container, { bottom: bottomOffset }]}
+      onPress={expand}
+      accessibilityRole="button"
+      accessibilityLabel="Expand player"
+      hitSlop={Spacing.two}
+    >
       <Card style={styles.card}>
         <View style={[styles.artworkPlaceholder, { backgroundColor: theme.accentSoft }]} />
         <View style={styles.body}>
           <ThemedText type="small" style={styles.title} numberOfLines={1}>
             {currentEpisode.title}
           </ThemedText>
-          <Pressable style={styles.track} onLayout={handleTrackLayout} onPress={handleTrackPress}>
+          <Pressable
+            style={styles.track}
+            onLayout={handleTrackLayout}
+            onPress={handleTrackPress}
+            accessibilityRole="button"
+            accessibilityLabel="Seek"
+            hitSlop={Spacing.two}
+          >
             <View style={[styles.trackBackground, { backgroundColor: theme.border }]} />
             <View
               style={[
@@ -74,6 +87,8 @@ export function MiniPlayer() {
             playPause();
           }}
           hitSlop={Spacing.two}
+          accessibilityRole="button"
+          accessibilityLabel={status.playing ? "Pause" : "Play"}
         >
           <ThemedText type="default" themeColor="primary">
             {status.playing ? "⏸" : "▶"}

@@ -27,7 +27,13 @@ export function BookmarkSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
-      <Pressable style={styles.backdrop} onPress={onDismiss}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={onDismiss}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss"
+        hitSlop={Spacing.two}
+      >
         <ThemedView style={styles.sheet}>
           <ThemedText type="subtitle">Bookmark this moment</ThemedText>
           <TextInput
