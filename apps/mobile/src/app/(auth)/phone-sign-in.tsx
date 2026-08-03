@@ -34,7 +34,8 @@ export default function PhoneSignInScreen() {
       setApiError(error.message);
       return;
     }
-    router.push({ pathname: "/otp-verify", params: { phone } });
+    const country = COUNTRY_CODES.find((c) => c.dialCode === values.dialCode)?.name;
+    router.push({ pathname: "/otp-verify", params: { phone, country } });
   };
 
   return (

@@ -16,7 +16,7 @@ import { type OtpVerifyInput, otpVerifySchema } from "@/lib/validation";
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function OtpVerifyScreen() {
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { phone, country } = useLocalSearchParams<{ phone: string; country: string }>();
   const [apiError, setApiError] = useState<string | undefined>();
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const {
@@ -45,9 +45,26 @@ export default function OtpVerifyScreen() {
     });
     if (error) {
       setApiError(error.message);
+      return;
     }
     // On success, the auth-state-change listener updates the store and the
     // root layout's <Redirect> takes the user to (app) — no navigation call needed here.
+    if (country) {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (userId) {
+        // Best-effort: failing to persist the selected country should not
+        // block sign-in — the OTP verification itself already succeeded
+        // and the user's session is live either way.
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ country })
+          .eq("id", userId);
+        if (profileError) {
+          console.warn("Failed to persist profiles.country after OTP verify", profileError);
+        }
+      }
+    }
   };
 
   const handleResend = async () => {

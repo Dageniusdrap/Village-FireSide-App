@@ -27,6 +27,15 @@ array of country names) is checked against the signed-in user's
 cultural-group filter at all (fails closed, not open). Applied to both
 the Learn tab's filter and the pre-existing Home cultural-groups rail.
 
+`profiles.country` is populated from two places: the country picked in
+the phone sign-in flow (`apps/mobile/src/app/(auth)/phone-sign-in.tsx`,
+persisted after OTP verification in `otp-verify.tsx` since a session
+only exists post-verification), or the Settings screen
+(`apps/mobile/src/app/(app)/settings.tsx`) for anyone who signed up a
+different way, or who signed up before this write path existed. Both
+write paths reuse `COUNTRY_CODES` (`apps/mobile/src/lib/phone.ts`),
+whose `name` values match `cultural_groups_enabled_countries` verbatim.
+
 ## Teacher request flow
 
 A signed-in user can request a teacher account
