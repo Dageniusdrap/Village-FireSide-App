@@ -29,9 +29,18 @@ export function useClasses() {
     queryKey: classesQueryKey(session?.user.id ?? null),
     enabled: session !== null,
     queryFn: async (): Promise<TeacherClass[]> => {
+      if (!session) {
+        return [];
+      }
       const { data, error } = await supabase
         .from("classes")
         .select("id, name, join_code, created_at")
+        // classes_member_select RLS (Task 4, forward-looking infra for a
+        // future student class list) also lets this query return classes
+        // the caller joined as a student — this explicit filter keeps "My
+        // Classes" scoped to classes this teacher owns, not RLS-visible
+        // ones in general.
+        .eq("teacher_id", session.user.id)
         .order("created_at", { ascending: false })
         .returns<ClassRow[]>();
       if (error) {
