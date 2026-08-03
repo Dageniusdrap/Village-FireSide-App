@@ -43,25 +43,25 @@ export function useGlobalSearch(query: string) {
         supabase
           .from("series")
           .select("id, title, cover_image_url")
-          .textSearch("search_vector", tsQuery)
+          .textSearch("search_vector", tsQuery, { config: "english" })
           .limit(RESULT_LIMIT)
           .returns<SeriesRow[]>(),
         supabase
           .from("episodes")
           .select("id, title, series_id, series(title)")
-          .textSearch("search_vector", tsQuery)
+          .textSearch("search_vector", tsQuery, { config: "english" })
           .limit(RESULT_LIMIT)
           .returns<EpisodeRow[]>(),
         supabase
           .from("destinations")
           .select("id, slug, name")
-          .textSearch("search_vector", tsQuery)
+          .textSearch("search_vector", tsQuery, { config: "english" })
           .limit(RESULT_LIMIT)
           .returns<DestinationRow[]>(),
         supabase
           .from("public_contributors")
           .select("id, display_name")
-          .textSearch("search_vector", tsQuery)
+          .textSearch("search_vector", tsQuery, { config: "english" })
           .limit(RESULT_LIMIT)
           .returns<ContributorRow[]>(),
       ]);
