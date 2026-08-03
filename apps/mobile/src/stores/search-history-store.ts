@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { readSearchHistory, writeSearchHistory } from "@/lib/search-history";
+import { MAX_HISTORY, readSearchHistory, writeSearchHistory } from "@/lib/search-history";
 
 type SearchHistoryState = {
   queries: string[];
@@ -15,7 +15,7 @@ export const useSearchHistoryStore = create<SearchHistoryState>((set, get) => ({
     if (trimmed.length === 0) {
       return;
     }
-    const next = [trimmed, ...get().queries.filter((q) => q !== trimmed)];
+    const next = [trimmed, ...get().queries.filter((q) => q !== trimmed)].slice(0, MAX_HISTORY);
     writeSearchHistory(next);
     set({ queries: next });
   },

@@ -1,6 +1,6 @@
 import { File, Paths } from "expo-file-system";
 
-const MAX_HISTORY = 10;
+export const MAX_HISTORY = 10;
 
 const historyFile = new File(Paths.document, "search-history.json");
 
