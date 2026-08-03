@@ -20,7 +20,12 @@ export function SeriesCard({
   onPress?: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.pressable}>
+    <Pressable
+      onPress={onPress}
+      style={styles.pressable}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
       <Card style={styles.card}>
         {coverImageUrl ? (
           <Image source={{ uri: coverImageUrl }} style={styles.cover} contentFit="cover" />

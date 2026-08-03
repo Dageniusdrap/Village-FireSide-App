@@ -19,7 +19,11 @@ export function SectionHeader({
         {title}
       </ThemedText>
       {actionLabel && onActionPress ? (
-        <Pressable onPress={onActionPress}>
+        <Pressable
+          onPress={onActionPress}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+        >
           <ThemedText type="linkPrimary">{actionLabel}</ThemedText>
         </Pressable>
       ) : null}

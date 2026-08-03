@@ -2,6 +2,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef } from "react";
 import { Modal, Pressable, StyleSheet } from "react-native";
 
+import { Spacing } from "@/constants/theme";
 import { audioPlayer } from "@/lib/audio-player";
 
 export function VideoModal({ url, onClose }: { url: string; onClose: () => void }) {
@@ -24,7 +25,13 @@ export function VideoModal({ url, onClose }: { url: string; onClose: () => void 
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={handleClose}>
-      <Pressable style={styles.backdrop} onPress={handleClose}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={handleClose}
+        accessibilityRole="button"
+        accessibilityLabel="Close video"
+        hitSlop={Spacing.two}
+      >
         <VideoView player={player} style={styles.video} nativeControls />
       </Pressable>
     </Modal>
