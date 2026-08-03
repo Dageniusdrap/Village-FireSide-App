@@ -21,11 +21,15 @@ type EpisodeRow = {
   grade_level: Episode["gradeLevel"];
   syllabus_topic: string | null;
   series_id: string;
+  // Null when the linked series is currently hidden from this user by its
+  // own RLS policy (series_select_published gates independently of
+  // episodes_select_published) — mirrors use-bookmarks.ts's and
+  // use-contributor-detail.ts's nested-embed nullability pattern.
   series: {
     title: string;
     cover_image_url: string | null;
     series_cultural_groups: { cultural_group_id: string }[];
-  };
+  } | null;
 };
 
 export function useSubjectEpisodes(subject: SubjectArea) {
@@ -46,20 +50,25 @@ export function useSubjectEpisodes(subject: SubjectArea) {
       if (error) {
         throw error;
       }
-      return data.map((row) => ({
-        id: row.id,
-        title: row.title,
-        durationSeconds: row.duration_seconds,
-        accessTier: row.access_tier,
-        contentSource: row.content_source,
-        subjectArea: row.subject_area,
-        gradeLevel: row.grade_level,
-        syllabusTopic: row.syllabus_topic,
-        seriesId: row.series_id,
-        seriesTitle: row.series.title,
-        coverImageUrl: row.series.cover_image_url,
-        culturalGroupIds: row.series.series_cultural_groups.map((g) => g.cultural_group_id),
-      }));
+      return data
+        .filter(
+          (row): row is EpisodeRow & { series: NonNullable<EpisodeRow["series"]> } =>
+            row.series !== null,
+        )
+        .map((row) => ({
+          id: row.id,
+          title: row.title,
+          durationSeconds: row.duration_seconds,
+          accessTier: row.access_tier,
+          contentSource: row.content_source,
+          subjectArea: row.subject_area,
+          gradeLevel: row.grade_level,
+          syllabusTopic: row.syllabus_topic,
+          seriesId: row.series_id,
+          seriesTitle: row.series.title,
+          coverImageUrl: row.series.cover_image_url,
+          culturalGroupIds: row.series.series_cultural_groups.map((g) => g.cultural_group_id),
+        }));
     },
   });
 }
