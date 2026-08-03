@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,11 +22,10 @@ export default function SearchScreen() {
   const addQuery = useSearchHistoryStore((state) => state.addQuery);
   const clearHistory = useSearchHistoryStore((state) => state.clearHistory);
 
-  const onChangeText = (text: string) => {
-    setInput(text);
-    const handle = setTimeout(() => setDebounced(text), DEBOUNCE_MS);
+  useEffect(() => {
+    const handle = setTimeout(() => setDebounced(input), DEBOUNCE_MS);
     return () => clearTimeout(handle);
-  };
+  }, [input]);
 
   const query = useGlobalSearch(debounced);
 
@@ -46,7 +45,7 @@ export default function SearchScreen() {
           style={styles.input}
           placeholder="Search stories, places, storytellers…"
           value={input}
-          onChangeText={onChangeText}
+          onChangeText={setInput}
           onSubmitEditing={onSubmit}
           autoFocus
         />
