@@ -18,9 +18,12 @@ export function ApproveRejectButtons({ requestId, userId }: { requestId: string;
             setApiError(undefined);
             setIsPending(true);
             try {
-              await approveTeacherRequest(requestId, userId);
-            } catch (error) {
-              setApiError(error instanceof Error ? error.message : "Failed to approve request.");
+              const result = await approveTeacherRequest(requestId, userId);
+              if (!result.ok) {
+                setApiError(result.message);
+              }
+            } catch {
+              setApiError("Failed to approve request.");
             } finally {
               setIsPending(false);
             }
@@ -35,9 +38,12 @@ export function ApproveRejectButtons({ requestId, userId }: { requestId: string;
             setApiError(undefined);
             setIsPending(true);
             try {
-              await rejectTeacherRequest(requestId);
-            } catch (error) {
-              setApiError(error instanceof Error ? error.message : "Failed to reject request.");
+              const result = await rejectTeacherRequest(requestId);
+              if (!result.ok) {
+                setApiError(result.message);
+              }
+            } catch {
+              setApiError("Failed to reject request.");
             } finally {
               setIsPending(false);
             }
