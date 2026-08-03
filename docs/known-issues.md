@@ -33,3 +33,32 @@ than a piecemeal addition to one screen.
 **Severity:** UX polish, not a correctness bug. No data loss or dead end —
 Android hardware back and iOS's lack of an alternative just make the guest
 sign-in/sign-up detour feel unfinished.
+
+### Error boundary's Restart button is currently inert (no EAS Update configured)
+
+`apps/mobile/src/components/error-boundary.tsx`'s "Restart" button calls
+`Updates.reloadAsync()`, but `expo-updates` is not actually configured for
+this project: `apps/mobile/app.json` has no `updates` key, no
+`runtimeVersion`, and does not list `expo-updates` in its `plugins` array,
+and there is no `eas.json` anywhere in the repo. Per the installed
+package's own type declarations (`expo-updates`'s `Updates.d.ts`, the
+`reloadAsync` doc comment around lines 84-109) and the versioned SDK 57
+docs (docs.expo.dev/versions/v57.0.0/sdk/updates/), `reloadAsync()`
+rejects whenever `expo-updates` isn't properly enabled/configured — which
+is the case for every build variant this repo can currently produce (dev
+client, Expo Go, and any production build, since none of them have updates
+configured). The button's tap handler catches this rejection safely (no
+crash, no unhandled rejection), but the reload itself never happens.
+
+**Fix shape:** set up EAS Update properly — register the `expo-updates`
+config plugin in `app.json`, configure `runtimeVersion`, create an
+`eas.json` with update channels, and wire a real publish workflow (e.g. a
+CI step or manual `eas update` command tied to release branches). This is
+meaningfully more infrastructure than a single task's scope and should be
+planned as its own piece of work.
+
+**Severity:** Low-to-moderate. The error boundary still correctly catches
+render crashes and shows the "Something went wrong" fallback screen —
+only the Restart button's actual reload action is currently a no-op. A
+user who hits a render crash today would need to manually force-quit and
+reopen the app themselves rather than tapping Restart.
