@@ -1,4 +1,5 @@
 // apps/mobile/src/app/(app)/learn/join-class.tsx
+import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,8 +27,10 @@ export default function JoinClassScreen() {
     setApiError(undefined);
     try {
       const result = await joinClass({ joinCode: joinCode.trim() });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setJoinedClassName(result.className);
     } catch (error) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setApiError(error instanceof Error ? error.message : "That code didn't work.");
     }
     setIsJoining(false);

@@ -1,5 +1,6 @@
 // apps/mobile/src/app/(app)/series/[id].tsx
 import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -79,6 +80,7 @@ export default function SeriesDetailScreen() {
 
   const handleFavorite = () => {
     requireAuth(() => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       // Optimistic update + rollback happens inside useToggleFavorite's
       // mutation (onMutate/onError against the shared favorite query key);
       // this screen just needs to swallow the rejection so it doesn't

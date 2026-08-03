@@ -1,5 +1,6 @@
 // apps/mobile/src/components/ui/mini-player.tsx
 import { useAudioPlayerStatus } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { Pressable, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -67,7 +68,13 @@ export function MiniPlayer() {
             />
           </Pressable>
         </View>
-        <Pressable onPress={playPause} hitSlop={Spacing.two}>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            playPause();
+          }}
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="default" themeColor="primary">
             {status.playing ? "⏸" : "▶"}
           </ThemedText>

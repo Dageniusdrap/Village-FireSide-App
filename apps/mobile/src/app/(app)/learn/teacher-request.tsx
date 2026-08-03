@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, TextInput } from "react-native";
@@ -42,9 +43,11 @@ export default function TeacherRequestScreen() {
       phone: values.phone,
     });
     if (error) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setApiError(error.message);
       return;
     }
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSubmitted(true);
   };
 

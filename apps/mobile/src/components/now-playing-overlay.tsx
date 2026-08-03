@@ -1,6 +1,7 @@
 // apps/mobile/src/components/now-playing-overlay.tsx
 import { Image } from "expo-image";
 import { useAudioPlayerStatus } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
@@ -146,6 +147,7 @@ export function NowPlayingOverlay() {
 
   const handleBookmarkSave = (note: string | null) => {
     setBookmarkSheetVisible(false);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     void createBookmark({
       episodeId: currentEpisode.id,
       positionSeconds: status.currentTime,
@@ -212,7 +214,12 @@ export function NowPlayingOverlay() {
                 ⏪15
               </ThemedText>
             </Pressable>
-            <Pressable onPress={playPause}>
+            <Pressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                playPause();
+              }}
+            >
               <ThemedText type="title" style={styles.controlIcon}>
                 {status.playing ? "⏸" : "▶"}
               </ThemedText>
