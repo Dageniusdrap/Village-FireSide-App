@@ -4,6 +4,11 @@ import { AppState } from "react-native";
 
 import { audioPlayer } from "@/lib/audio-player";
 import { persistListeningProgress } from "@/lib/local-listening-progress";
+import {
+  hasPromptedForNotifications,
+  markPromptedForNotifications,
+} from "@/lib/notification-permission-flag";
+import { requestNotificationPermissionAndRegister } from "@/lib/push-token-registration";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePlayerStore } from "@/stores/player-store";
 
@@ -82,6 +87,10 @@ export function AudioStatusDriver() {
   useEffect(() => {
     if (status.didJustFinish && !didJustFinishRef.current) {
       didJustFinishRef.current = true;
+      if (userIdRef.current && !hasPromptedForNotifications()) {
+        markPromptedForNotifications();
+        void requestNotificationPermissionAndRegister(userIdRef.current);
+      }
       if (sleepTimer.mode === "end-of-episode") {
         audioPlayer.pause();
         cancelSleepTimer();
