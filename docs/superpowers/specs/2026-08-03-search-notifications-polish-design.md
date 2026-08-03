@@ -147,16 +147,39 @@ today. No new consent logic exists or is needed for search.
 
 **Verification task (goes into the implementation plan as an explicit
 step, not left to be assumed):** after this migration is applied, run
-`EXPLAIN ANALYZE` on a representative search query against
-`public_contributors` (e.g.
-`explain analyze select * from public_contributors where search_vector @@ websearch_to_tsquery('english', 'test')`)
-and confirm the plan actually uses `contributors_search_vector_idx`
-(a `Bitmap Index Scan`/`Index Scan` referencing it), not a sequential
-scan. Report the actual plan output — a view with a `where exists`
-subquery is exactly the shape where predicate pushdown could
-plausibly fail to reach the indexed expression, so this needs a real
-check, not an assumption that indexing "the underlying table" is
-automatically sufficient.
+`EXPLAIN` (not `ANALYZE`, and with `enable_seqscan` forced off) on a
+representative search query against `public_contributors` and confirm
+the plan references `contributors_search_vector_idx`. **This needs the
+non-obvious `enable_seqscan` step, checked live, not assumed:** this
+project's content tables are currently empty (confirmed:
+`contributors`/`series`/`episodes`/`destinations` all 0 rows on the
+live project). Postgres's planner costs a sequential scan as cheaper
+than an index scan on a table with few or zero rows regardless of
+whether a usable index exists — so a plain `explain analyze` here
+would show `Seq Scan` (or a zero-row `Result`) even with a perfectly
+working index, for a reason that has nothing to do with whether
+pushdown through the view actually reaches the indexed expression.
+The real question — can this predicate structurally use the index at
+all — is answered by forcing the planner's hand:
+
+```sql
+set local enable_seqscan = off;
+explain select * from public_contributors
+where search_vector @@ websearch_to_tsquery('english', 'test');
+```
+
+If the plan still shows a sequential scan even with `enable_seqscan`
+off, that's a real finding (the pushdown genuinely isn't reaching the
+indexed column — the exact risk this check exists to catch, per the
+`where exists` subquery reasoning below). If it shows an `Index Scan`/
+`Bitmap Index Scan` on `contributors_search_vector_idx`, pushdown
+works structurally, and the planner's own preference for a sequential
+scan at low row counts becomes irrelevant to production behavior once
+real content exists. Report the actual plan output either way — a
+view with a `where exists` subquery is exactly the shape where
+predicate pushdown could plausibly fail to reach the indexed
+expression, so this needs a real check, not an assumption that
+indexing "the underlying table" is automatically sufficient.
 
 ### `push_tokens`
 
