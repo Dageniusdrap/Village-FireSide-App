@@ -19,6 +19,7 @@ import { SignInPromptSheet } from "@/components/sign-in-prompt-sheet";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Chip } from "@/components/ui/chip";
+import { ShareButton } from "@/components/ui/share-button";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Spacing } from "@/constants/theme";
 import { useEpisodeContributor } from "@/hooks/queries/use-episode-contributor";
@@ -255,6 +256,7 @@ export function NowPlayingOverlay() {
                     : "Sleep timer"}
               </ThemedText>
             </Pressable>
+            <ShareButton url={`villagefireside://episode/${currentEpisode.id}`} />
           </View>
 
           {sleepPickerVisible ? (

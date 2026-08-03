@@ -12,6 +12,7 @@ import { DestinationCard } from "@/components/ui/destination-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SeriesCard } from "@/components/ui/series-card";
+import { ShareButton } from "@/components/ui/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
 import { useDestinationDetail } from "@/hooks/queries/use-destination-detail";
@@ -109,6 +110,7 @@ export default function DestinationDetailScreen() {
           label="Plan Your Visit"
           onPress={() => router.push(`/destination/${destination.slug}/inquire`)}
         />
+        <ShareButton url={`villagefireside://destination/${destination.slug}`} />
 
         <SectionHeader title="Stories from this place" />
         {destination.series.length === 0 ? (

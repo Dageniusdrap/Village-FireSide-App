@@ -10,6 +10,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EpisodeRow } from "@/components/ui/episode-row";
+import { ShareButton } from "@/components/ui/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SignInPromptSheet } from "@/components/sign-in-prompt-sheet";
 import { Spacing } from "@/constants/theme";
@@ -125,6 +126,7 @@ export default function SeriesDetailScreen() {
               ⬇ Download series
             </ThemedText>
           </Pressable>
+          <ShareButton url={`villagefireside://series/${series.id}`} />
         </ThemedView>
 
         {series.episodes.length === 0 ? (

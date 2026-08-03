@@ -62,3 +62,23 @@ render crashes and shows the "Something went wrong" fallback screen —
 only the Restart button's actual reload action is currently a no-op. A
 user who hits a render crash today would need to manually force-quit and
 reopen the app themselves rather than tapping Restart.
+
+### Share links only work for recipients who already have the app
+
+`ShareButton` (`apps/mobile/src/components/ui/share-button.tsx`) shares
+a `villagefireside://...` deep link via React Native's `Share.share()`.
+`app.json` has no `associatedDomains` (iOS) or `intentFilters`
+(Android) for HTTPS universal links, and no hosted domain exists
+anywhere in this project's configuration — confirmed by grepping the
+whole repo. For a recipient without the app installed, a shared link is
+inert text or a "no app found" error.
+
+**Fix shape:** register a real domain, host
+`.well-known/apple-app-site-association` and `assetlinks.json`, add
+`associatedDomains`/`intentFilters` to `app.json`, and build a simple
+"get the app" landing/redirect page for non-users — likely alongside a
+future marketing-site effort.
+
+**Severity:** Sharing works today for app-to-app use (an existing user
+sharing with another existing user). Non-user recipients get a dead
+link until the domain infrastructure above exists.
