@@ -41,7 +41,11 @@ export default function ClassDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <BackButton />
-        <EmptyState title="Couldn't load this class" body="Please try again later." />
+        <EmptyState
+          title="Couldn't load this class"
+          body="Please try again later."
+          onRetry={() => query.refetch()}
+        />
       </SafeAreaView>
     );
   }

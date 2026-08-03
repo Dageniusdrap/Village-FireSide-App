@@ -118,7 +118,11 @@ export default function SubjectScreen() {
         {query.isLoading ? (
           <Skeleton width="100%" height={200} />
         ) : query.isError ? (
-          <EmptyState title="Couldn't load stories" body="Please try again later." />
+          <EmptyState
+            title="Couldn't load stories"
+            body="Please try again later."
+            onRetry={() => query.refetch()}
+          />
         ) : (
           <>
             {subject === "history" && elderTestimonyFirst.length > 0 ? (

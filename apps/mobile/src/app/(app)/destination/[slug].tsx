@@ -35,7 +35,11 @@ export default function DestinationDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <BackButton />
-        <EmptyState title="Not found" body="This destination isn't available right now." />
+        <EmptyState
+          title="Not found"
+          body="This destination isn't available right now."
+          onRetry={() => query.refetch()}
+        />
       </SafeAreaView>
     );
   }

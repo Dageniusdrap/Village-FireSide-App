@@ -31,7 +31,11 @@ export default function CulturalGroupDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <BackButton />
-        <EmptyState title="Not found" body="This culture's page isn't available right now." />
+        <EmptyState
+          title="Not found"
+          body="This culture's page isn't available right now."
+          onRetry={() => query.refetch()}
+        />
       </SafeAreaView>
     );
   }

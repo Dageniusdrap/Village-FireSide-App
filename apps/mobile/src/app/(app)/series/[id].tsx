@@ -49,6 +49,7 @@ export default function SeriesDetailScreen() {
         <EmptyState
           title="Not found"
           body="This series isn't available — it may have been unpublished or the link may be wrong."
+          onRetry={() => query.refetch()}
         />
       </SafeAreaView>
     );

@@ -31,6 +31,7 @@ export default function ContributorProfileScreen() {
         <EmptyState
           title="Not found"
           body="This storyteller's profile isn't available right now."
+          onRetry={() => query.refetch()}
         />
       </SafeAreaView>
     );
