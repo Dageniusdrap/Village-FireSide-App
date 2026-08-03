@@ -148,3 +148,23 @@ convention.
 
 **Severity:** Low. Convention-consistent with the rest of the app; not a
 regression.
+
+### Cold-start notification tap likely won't deep-link correctly
+
+`usePushNotificationListeners` (`apps/mobile/src/app/_layout.tsx:45`) is
+called above the `loading || !fontsLoaded` early return
+(`apps/mobile/src/app/_layout.tsx:106`), so a notification tap that
+launches the app from a killed state can fire the response listener's
+`router.push(...)` before `<Slot />` (and the whole `(app)` stack) has
+mounted — and the route-guard effect can then `router.replace` over it once
+loading resolves. Zero practical impact today, since nothing sends real
+notifications until a future prompt builds the sender, but real once that
+exists.
+
+**Fix shape:** use `Notifications.useLastNotificationResponse()` (which
+replays the launching response once navigation is ready) instead of, or in
+addition to, `addNotificationResponseReceivedListener` for the cold-start
+case.
+
+**Severity:** None today (no real notifications sent yet). Will be a real
+deep-link bug once the notification sender ships.
