@@ -75,6 +75,9 @@ export default function TeacherClassesScreen() {
               key={classItem.id}
               style={styles.classRow}
               onPress={() => router.push(`/learn/teacher/class/${classItem.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open class ${classItem.name}`}
+              hitSlop={Spacing.two}
             >
               <ThemedText type="default">{classItem.name}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">

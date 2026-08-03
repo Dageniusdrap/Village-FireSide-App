@@ -65,6 +65,9 @@ export default function ContributorProfileScreen() {
               key={`${episode.id}-${episode.role}`}
               style={styles.episodeRow}
               onPress={() => router.push(`/series/${episode.seriesId}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open series ${episode.seriesTitle}`}
+              hitSlop={Spacing.two}
             >
               <View style={styles.episodeInfo}>
                 <ThemedText type="default">{episode.title}</ThemedText>

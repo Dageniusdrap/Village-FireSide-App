@@ -118,12 +118,22 @@ export default function SeriesDetailScreen() {
             onPress={playAll}
             disabled={series.episodes.length === 0}
           />
-          <Pressable onPress={handleFavorite}>
+          <Pressable
+            onPress={handleFavorite}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorited ? "Remove from favorites" : "Add to favorites"}
+            hitSlop={Spacing.two}
+          >
             <ThemedText type="default" themeColor={isFavorited ? "accent" : "textSecondary"}>
               {isFavorited ? "♥ Favorited" : "♡ Favorite"}
             </ThemedText>
           </Pressable>
-          <Pressable onPress={handleDownloadSeries}>
+          <Pressable
+            onPress={handleDownloadSeries}
+            accessibilityRole="button"
+            accessibilityLabel="Download entire series"
+            hitSlop={Spacing.two}
+          >
             <ThemedText type="default" themeColor="textSecondary">
               ⬇ Download series
             </ThemedText>

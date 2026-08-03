@@ -73,7 +73,13 @@ export default function DestinationDetailScreen() {
                   contentFit="cover"
                 />
               ) : (
-                <Pressable key={item.id} onPress={() => setActiveVideoUrl(item.url)}>
+                <Pressable
+                  key={item.id}
+                  onPress={() => setActiveVideoUrl(item.url)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Play video"
+                  hitSlop={Spacing.two}
+                >
                   <View style={[styles.galleryImage, styles.videoThumbnail]}>
                     <ThemedText type="default" themeColor="background">
                       ▶ Play

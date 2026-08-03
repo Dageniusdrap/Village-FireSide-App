@@ -147,7 +147,13 @@ export default function BookingInquiryScreen() {
         />
         <FormError message={errors.email?.message} />
 
-        <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+        <Pressable
+          style={styles.input}
+          onPress={() => setShowDatePicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Select preferred visit date"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="default">
             {preferredDate ? formatLocalDate(preferredDate) : "Preferred date (optional)"}
           </ThemedText>

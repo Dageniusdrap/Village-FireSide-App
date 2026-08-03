@@ -148,7 +148,13 @@ export default function CoinsScreen() {
           ))
         )}
 
-        <Pressable onPress={() => void handleRestore()} disabled={restoring}>
+        <Pressable
+          onPress={() => void handleRestore()}
+          disabled={restoring}
+          accessibilityRole="button"
+          accessibilityLabel="Restore Purchases"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="linkPrimary">
             {restoring ? "Restoring…" : "Restore Purchases"}
           </ThemedText>
