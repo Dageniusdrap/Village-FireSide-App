@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { FormError } from "@/components/form-error";
 import { ThemedText } from "@/components/themed-text";
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
@@ -79,11 +80,7 @@ export default function ClassDetailScreen() {
             disabled={isAssigning || !episodeIdInput.trim()}
           />
         </View>
-        {assignError ? (
-          <ThemedText type="small" themeColor="text" style={styles.error}>
-            {assignError}
-          </ThemedText>
-        ) : null}
+        <FormError message={assignError} />
 
         <SectionHeader title="Assigned Episodes" />
         {assignedEpisodes.length === 0 ? (
@@ -123,9 +120,6 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-  },
-  error: {
-    color: "#C0392B",
   },
   episodeRow: {
     flexDirection: "row",

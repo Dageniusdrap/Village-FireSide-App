@@ -3,6 +3,7 @@ import { useState } from "react";
 import { StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { FormError } from "@/components/form-error";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BackButton } from "@/components/ui/back-button";
@@ -55,11 +56,7 @@ export default function JoinClassScreen() {
           onChangeText={setJoinCode}
           autoCapitalize="characters"
         />
-        {apiError ? (
-          <ThemedText type="small" themeColor="text" style={styles.error}>
-            {apiError}
-          </ThemedText>
-        ) : null}
+        <FormError message={apiError} />
         <Button
           label={isJoining ? "Joining…" : "Join"}
           onPress={onJoin}
@@ -86,8 +83,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     marginTop: Spacing.three,
-  },
-  error: {
-    color: "#C0392B",
   },
 });
