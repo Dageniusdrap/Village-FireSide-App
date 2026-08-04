@@ -12,6 +12,7 @@ import { DestinationCard } from "@/components/ui/destination-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SeriesCard } from "@/components/ui/series-card";
+import { ShareButton } from "@/components/ui/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spacing } from "@/constants/theme";
 import { useDestinationDetail } from "@/hooks/queries/use-destination-detail";
@@ -35,7 +36,11 @@ export default function DestinationDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <BackButton />
-        <EmptyState title="Not found" body="This destination isn't available right now." />
+        <EmptyState
+          title="Not found"
+          body="This destination isn't available right now."
+          onRetry={() => query.refetch()}
+        />
       </SafeAreaView>
     );
   }
@@ -68,7 +73,13 @@ export default function DestinationDetailScreen() {
                   contentFit="cover"
                 />
               ) : (
-                <Pressable key={item.id} onPress={() => setActiveVideoUrl(item.url)}>
+                <Pressable
+                  key={item.id}
+                  onPress={() => setActiveVideoUrl(item.url)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Play video"
+                  hitSlop={Spacing.two}
+                >
                   <View style={[styles.galleryImage, styles.videoThumbnail]}>
                     <ThemedText type="default" themeColor="background">
                       ▶ Play
@@ -105,6 +116,7 @@ export default function DestinationDetailScreen() {
           label="Plan Your Visit"
           onPress={() => router.push(`/destination/${destination.slug}/inquire`)}
         />
+        <ShareButton url={`villagefireside://destination/${destination.slug}`} />
 
         <SectionHeader title="Stories from this place" />
         {destination.series.length === 0 ? (

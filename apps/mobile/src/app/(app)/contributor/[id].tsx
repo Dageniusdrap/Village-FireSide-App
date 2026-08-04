@@ -31,6 +31,7 @@ export default function ContributorProfileScreen() {
         <EmptyState
           title="Not found"
           body="This storyteller's profile isn't available right now."
+          onRetry={() => query.refetch()}
         />
       </SafeAreaView>
     );
@@ -64,6 +65,9 @@ export default function ContributorProfileScreen() {
               key={`${episode.id}-${episode.role}`}
               style={styles.episodeRow}
               onPress={() => router.push(`/series/${episode.seriesId}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open series ${episode.seriesTitle}`}
+              hitSlop={Spacing.two}
             >
               <View style={styles.episodeInfo}>
                 <ThemedText type="default">{episode.title}</ThemedText>

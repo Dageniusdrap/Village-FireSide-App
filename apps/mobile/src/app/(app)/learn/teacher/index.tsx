@@ -62,7 +62,11 @@ export default function TeacherClassesScreen() {
         {query.isLoading ? (
           <Skeleton width="100%" height={100} />
         ) : query.isError ? (
-          <EmptyState title="Couldn't load classes" body="Please try again later." />
+          <EmptyState
+            title="Couldn't load classes"
+            body="Please try again later."
+            onRetry={() => query.refetch()}
+          />
         ) : !query.data || query.data.length === 0 ? (
           <EmptyState title="No classes yet" body="Create a class above to get a join code." />
         ) : (
@@ -71,6 +75,9 @@ export default function TeacherClassesScreen() {
               key={classItem.id}
               style={styles.classRow}
               onPress={() => router.push(`/learn/teacher/class/${classItem.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open class ${classItem.name}`}
+              hitSlop={Spacing.two}
             >
               <ThemedText type="default">{classItem.name}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">

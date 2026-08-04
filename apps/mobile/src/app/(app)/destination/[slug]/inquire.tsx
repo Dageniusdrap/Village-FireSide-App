@@ -1,6 +1,7 @@
 // apps/mobile/src/app/(app)/destination/[slug]/inquire.tsx
 import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -72,9 +73,11 @@ export default function BookingInquiryScreen() {
       message: values.message,
     });
     if (error) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setApiError(error.message);
       return;
     }
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSubmitted(true);
   };
 
@@ -144,7 +147,13 @@ export default function BookingInquiryScreen() {
         />
         <FormError message={errors.email?.message} />
 
-        <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+        <Pressable
+          style={styles.input}
+          onPress={() => setShowDatePicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Select preferred visit date"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="default">
             {preferredDate ? formatLocalDate(preferredDate) : "Preferred date (optional)"}
           </ThemedText>

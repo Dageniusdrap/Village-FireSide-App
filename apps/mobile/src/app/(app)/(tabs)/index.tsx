@@ -10,6 +10,7 @@ import { EpisodeRow } from "@/components/ui/episode-row";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SeriesCard } from "@/components/ui/series-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { useCulturalGroupsEnabled } from "@/hooks/queries/use-app-settings";
 import {
@@ -121,6 +122,8 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
       >
+        <TabHeader title="Home" />
+
         <SectionHeader title="Featured" />
         <SeriesRail query={featuredSeries} onPressSeries={goToSeries} />
 

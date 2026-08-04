@@ -1,5 +1,6 @@
 // apps/mobile/src/app/(app)/series/[id].tsx
 import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,6 +11,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EpisodeRow } from "@/components/ui/episode-row";
+import { ShareButton } from "@/components/ui/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SignInPromptSheet } from "@/components/sign-in-prompt-sheet";
 import { Spacing } from "@/constants/theme";
@@ -49,6 +51,7 @@ export default function SeriesDetailScreen() {
         <EmptyState
           title="Not found"
           body="This series isn't available — it may have been unpublished or the link may be wrong."
+          onRetry={() => query.refetch()}
         />
       </SafeAreaView>
     );
@@ -77,6 +80,7 @@ export default function SeriesDetailScreen() {
 
   const handleFavorite = () => {
     requireAuth(() => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       // Optimistic update + rollback happens inside useToggleFavorite's
       // mutation (onMutate/onError against the shared favorite query key);
       // this screen just needs to swallow the rejection so it doesn't
@@ -114,16 +118,27 @@ export default function SeriesDetailScreen() {
             onPress={playAll}
             disabled={series.episodes.length === 0}
           />
-          <Pressable onPress={handleFavorite}>
+          <Pressable
+            onPress={handleFavorite}
+            accessibilityRole="button"
+            accessibilityLabel={isFavorited ? "Remove from favorites" : "Add to favorites"}
+            hitSlop={Spacing.two}
+          >
             <ThemedText type="default" themeColor={isFavorited ? "accent" : "textSecondary"}>
               {isFavorited ? "♥ Favorited" : "♡ Favorite"}
             </ThemedText>
           </Pressable>
-          <Pressable onPress={handleDownloadSeries}>
+          <Pressable
+            onPress={handleDownloadSeries}
+            accessibilityRole="button"
+            accessibilityLabel="Download entire series"
+            hitSlop={Spacing.two}
+          >
             <ThemedText type="default" themeColor="textSecondary">
               ⬇ Download series
             </ThemedText>
           </Pressable>
+          <ShareButton url={`villagefireside://series/${series.id}`} />
         </ThemedView>
 
         {series.episodes.length === 0 ? (

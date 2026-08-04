@@ -20,6 +20,8 @@ import { useAuthListener } from "@/hooks/use-auth-listener";
 import { useConfigureAudioMode } from "@/hooks/use-configure-audio-mode";
 import { useConfigurePurchases } from "@/hooks/use-configure-purchases";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { usePushNotificationListeners } from "@/hooks/use-push-notification-listeners";
+import { usePushTokenReregistration } from "@/hooks/use-push-token-reregistration";
 import { useRecoveryLinkHandler } from "@/hooks/use-recovery-link-handler";
 import { useRouteSegments } from "@/hooks/use-route-segments";
 import { useSyncPurchasesIdentity } from "@/hooks/use-sync-purchases-identity";
@@ -39,6 +41,9 @@ export default function RootLayout() {
   useConfigureAudioMode();
   useConfigurePurchases();
   useSyncPurchasesIdentity();
+  const session = useAuthStore((state) => state.session);
+  usePushNotificationListeners();
+  usePushTokenReregistration(session?.user.id ?? null);
   const { isConnected } = useNetworkStatus();
   const hasCheckedOfflineLaunch = useRef(false);
 
@@ -51,7 +56,6 @@ export default function RootLayout() {
   });
 
   const loading = useAuthStore((state) => state.loading);
-  const session = useAuthStore((state) => state.session);
   const guestMode = useAuthStore((state) => state.guestMode);
   const passwordRecovery = useAuthStore((state) => state.passwordRecovery);
 

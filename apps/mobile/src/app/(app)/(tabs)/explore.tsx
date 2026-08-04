@@ -8,8 +8,8 @@ import { Marker } from "react-native-maps";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Chip } from "@/components/ui/chip";
 import { DestinationCard } from "@/components/ui/destination-card";
-import { SectionHeader } from "@/components/ui/section-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { matchesDestinationFilters } from "@/lib/destination-filter";
 import { useDestinations } from "@/hooks/queries/use-destinations";
@@ -42,7 +42,7 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <SectionHeader title="Explore" />
+      <TabHeader title="Explore" />
 
       <View style={styles.toggleRow}>
         <Chip label="List" selected={view === "list"} onPress={() => setView("list")} />

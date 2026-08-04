@@ -5,6 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
+import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { useBookmarks } from "@/hooks/queries/use-bookmarks";
 import { formatBytes } from "@/lib/format-bytes";
@@ -51,7 +52,7 @@ export default function LibraryScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <SectionHeader title="Library" />
+      <TabHeader title="Library" />
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="default" themeColor="textSecondary">
           Your favorites, downloads, and listening history will show up here.
@@ -65,7 +66,14 @@ export default function LibraryScreen() {
           />
         ) : (
           bookmarks.map((bookmark) => (
-            <Pressable key={bookmark.id} style={styles.row} onPress={() => openBookmark(bookmark)}>
+            <Pressable
+              key={bookmark.id}
+              style={styles.row}
+              onPress={() => openBookmark(bookmark)}
+              accessibilityRole="button"
+              accessibilityLabel="Open saved bookmark"
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="default">{bookmark.episode.title}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 {bookmark.episode.seriesTitle} · {formatDuration(bookmark.positionSeconds)}
@@ -108,14 +116,24 @@ export default function LibraryScreen() {
                 {download.status === "error" ? ` · ${download.error}` : ""}
               </ThemedText>
               {download.status === "downloaded" ? (
-                <Pressable onPress={() => removeDownload(download.episodeId)}>
+                <Pressable
+                  onPress={() => removeDownload(download.episodeId)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete downloaded episode"
+                  hitSlop={Spacing.two}
+                >
                   <ThemedText type="small" themeColor="accent">
                     Delete
                   </ThemedText>
                 </Pressable>
               ) : null}
               {download.status === "error" ? (
-                <Pressable onPress={() => retryDownload(download.episodeId)}>
+                <Pressable
+                  onPress={() => retryDownload(download.episodeId)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retry download"
+                  hitSlop={Spacing.two}
+                >
                   <ThemedText type="small" themeColor="accent">
                     Retry
                   </ThemedText>
@@ -124,7 +142,12 @@ export default function LibraryScreen() {
               {download.status === "queued" ||
               download.status === "downloading" ||
               download.status === "paused_wifi" ? (
-                <Pressable onPress={() => cancelDownload(download.episodeId)}>
+                <Pressable
+                  onPress={() => cancelDownload(download.episodeId)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel download"
+                  hitSlop={Spacing.two}
+                >
                   <ThemedText type="small" themeColor="accent">
                     Cancel
                   </ThemedText>

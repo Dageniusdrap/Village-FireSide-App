@@ -9,9 +9,17 @@ export type ButtonProps = Omit<PressableProps, "style"> & {
   label: string;
   variant?: "primary" | "secondary" | "ghost";
   loading?: boolean;
+  accessibilityLabel?: string;
 };
 
-export function Button({ label, variant = "primary", loading, disabled, ...rest }: ButtonProps) {
+export function Button({
+  label,
+  variant = "primary",
+  loading,
+  disabled,
+  accessibilityLabel,
+  ...rest
+}: ButtonProps) {
   const theme = useTheme();
   const isDisabled = disabled || loading;
 
@@ -23,6 +31,8 @@ export function Button({ label, variant = "primary", loading, disabled, ...rest 
     <Pressable
       style={[styles.base, { backgroundColor }, isDisabled ? styles.disabled : null]}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
       {...rest}
     >
       {loading ? (

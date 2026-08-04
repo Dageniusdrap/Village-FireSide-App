@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { SectionHeader } from "@/components/ui/section-header";
+import { TabHeader } from "@/components/ui/tab-header";
 import { SUBJECT_AREAS } from "@/constants/learn";
 import { Spacing } from "@/constants/theme";
 import { useProfile } from "@/hooks/queries/use-profile";
@@ -17,6 +18,8 @@ export default function LearnScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
+        <TabHeader title="Learn" />
+
         <SectionHeader title="Browse by Subject" />
         <View style={styles.row}>
           {SUBJECT_AREAS.map((subject) => (

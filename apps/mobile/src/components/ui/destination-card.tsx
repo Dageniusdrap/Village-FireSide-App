@@ -18,7 +18,12 @@ export function DestinationCard({
   onPress?: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.pressable}>
+    <Pressable
+      onPress={onPress}
+      style={styles.pressable}
+      accessibilityRole="button"
+      accessibilityLabel={name}
+    >
       <Card style={styles.card}>
         {coverImageUrl ? (
           <Image source={{ uri: coverImageUrl }} style={styles.cover} contentFit="cover" />

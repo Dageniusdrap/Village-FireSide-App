@@ -59,7 +59,13 @@ export function EpisodeRow({
   const isLocked = accessTier !== "free";
 
   return (
-    <Pressable style={styles.row} onPress={onPress} disabled={!onPress}>
+    <Pressable
+      style={styles.row}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Play ${title}`}
+    >
       <ThemedText type="default" themeColor="primary" style={styles.playIcon}>
         ▶
       </ThemedText>
@@ -81,7 +87,13 @@ export function EpisodeRow({
         {isLocked ? lockLabel(accessTier, coinPrice) : "Free"}
       </ThemedText>
       {onDownloadPress ? (
-        <Pressable onPress={onDownloadPress} hitSlop={8} style={styles.downloadButton}>
+        <Pressable
+          onPress={onDownloadPress}
+          hitSlop={Spacing.two}
+          style={styles.downloadButton}
+          accessibilityRole="button"
+          accessibilityLabel="Download episode"
+        >
           <ThemedText
             type="default"
             themeColor={downloadStatus === "downloaded" ? "success" : "textSecondary"}

@@ -17,18 +17,36 @@ export function SignInPromptSheet({
 }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
-      <Pressable style={styles.backdrop} onPress={onDismiss}>
+      <Pressable
+        style={styles.backdrop}
+        onPress={onDismiss}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss"
+        hitSlop={Spacing.two}
+      >
         <ThemedView style={styles.sheet}>
           <ThemedText type="subtitle">Sign in to continue</ThemedText>
           <ThemedText type="default">
             Create a free account or sign in to save your progress.
           </ThemedText>
-          <Pressable style={styles.primaryButton} onPress={onSignIn}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={onSignIn}
+            accessibilityRole="button"
+            accessibilityLabel="Sign In"
+            hitSlop={Spacing.two}
+          >
             <ThemedText type="default" themeColor="background">
               Sign In
             </ThemedText>
           </Pressable>
-          <Pressable style={styles.secondaryButton} onPress={onSignUp}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={onSignUp}
+            accessibilityRole="button"
+            accessibilityLabel="Create Account"
+            hitSlop={Spacing.two}
+          >
             <ThemedText type="linkPrimary">Create Account</ThemedText>
           </Pressable>
         </ThemedView>

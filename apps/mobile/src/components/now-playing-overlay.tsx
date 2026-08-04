@@ -1,6 +1,7 @@
 // apps/mobile/src/components/now-playing-overlay.tsx
 import { Image } from "expo-image";
 import { useAudioPlayerStatus } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
@@ -19,6 +20,7 @@ import { SignInPromptSheet } from "@/components/sign-in-prompt-sheet";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Chip } from "@/components/ui/chip";
+import { ShareButton } from "@/components/ui/share-button";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Spacing } from "@/constants/theme";
 import { useEpisodeContributor } from "@/hooks/queries/use-episode-contributor";
@@ -145,6 +147,7 @@ export function NowPlayingOverlay() {
 
   const handleBookmarkSave = (note: string | null) => {
     setBookmarkSheetVisible(false);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     void createBookmark({
       episodeId: currentEpisode.id,
       positionSeconds: status.currentTime,
@@ -155,7 +158,13 @@ export function NowPlayingOverlay() {
   return (
     <Modal visible={expanded} animationType="slide" onRequestClose={collapse}>
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
-        <Pressable onPress={collapse} style={styles.collapseButton}>
+        <Pressable
+          onPress={collapse}
+          style={styles.collapseButton}
+          accessibilityRole="button"
+          accessibilityLabel="Collapse player"
+          hitSlop={Spacing.two}
+        >
           <ThemedText type="default">▼</ThemedText>
         </Pressable>
         <ScrollView contentContainerStyle={styles.content}>
@@ -201,27 +210,55 @@ export function NowPlayingOverlay() {
           </View>
 
           <View style={styles.controlsRow}>
-            <Pressable onPress={() => void previous()}>
+            <Pressable
+              onPress={() => void previous()}
+              accessibilityRole="button"
+              accessibilityLabel="Previous track"
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="title" style={styles.controlIcon}>
                 ⏮
               </ThemedText>
             </Pressable>
-            <Pressable onPress={() => seekBy(-15)}>
+            <Pressable
+              onPress={() => seekBy(-15)}
+              accessibilityRole="button"
+              accessibilityLabel="Seek back 15 seconds"
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="subtitle" style={styles.controlIcon}>
                 ⏪15
               </ThemedText>
             </Pressable>
-            <Pressable onPress={playPause}>
+            <Pressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                playPause();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={status.playing ? "Pause" : "Play"}
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="title" style={styles.controlIcon}>
                 {status.playing ? "⏸" : "▶"}
               </ThemedText>
             </Pressable>
-            <Pressable onPress={() => seekBy(15)}>
+            <Pressable
+              onPress={() => seekBy(15)}
+              accessibilityRole="button"
+              accessibilityLabel="Seek forward 15 seconds"
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="subtitle" style={styles.controlIcon}>
                 15⏩
               </ThemedText>
             </Pressable>
-            <Pressable onPress={() => void next()}>
+            <Pressable
+              onPress={() => void next()}
+              accessibilityRole="button"
+              accessibilityLabel="Next track"
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="title" style={styles.controlIcon}>
                 ⏭
               </ThemedText>
@@ -240,12 +277,22 @@ export function NowPlayingOverlay() {
           </View>
 
           <View style={styles.actionsRow}>
-            <Pressable onPress={handleBookmarkPress}>
+            <Pressable
+              onPress={handleBookmarkPress}
+              accessibilityRole="button"
+              accessibilityLabel="Open bookmark"
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="default" themeColor="accent">
                 🔖 Bookmark
               </ThemedText>
             </Pressable>
-            <Pressable onPress={() => setSleepPickerVisible((visible) => !visible)}>
+            <Pressable
+              onPress={() => setSleepPickerVisible((visible) => !visible)}
+              accessibilityRole="button"
+              accessibilityLabel="Sleep timer"
+              hitSlop={Spacing.two}
+            >
               <ThemedText type="default" themeColor="accent">
                 ⏰{" "}
                 {sleepTimer.mode === "timer"
@@ -255,6 +302,7 @@ export function NowPlayingOverlay() {
                     : "Sleep timer"}
               </ThemedText>
             </Pressable>
+            <ShareButton url={`villagefireside://episode/${currentEpisode.id}`} />
           </View>
 
           {sleepPickerVisible ? (

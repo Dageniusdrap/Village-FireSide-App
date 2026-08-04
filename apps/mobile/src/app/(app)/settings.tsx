@@ -65,6 +65,9 @@ export default function SettingsScreen() {
                 ]}
                 disabled={isSavingCountry}
                 onPress={() => onSelectCountry(country.name)}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${country.name}`}
+                hitSlop={Spacing.two}
               >
                 <ThemedText type="small">{country.name}</ThemedText>
               </Pressable>

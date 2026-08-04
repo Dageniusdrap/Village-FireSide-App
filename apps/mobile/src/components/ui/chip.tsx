@@ -24,6 +24,9 @@ export function Chip({
         { backgroundColor: selected ? theme.accent : theme.accentSoft, borderColor: theme.border },
       ]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
     >
       <ThemedText type="small" style={{ color: textColor }}>
         {label}
