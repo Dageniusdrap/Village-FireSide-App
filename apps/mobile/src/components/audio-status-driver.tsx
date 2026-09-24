@@ -3,14 +3,36 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 
 import { audioPlayer } from "@/lib/audio-player";
+import { recordListeningTick } from "@/lib/daily-listening-tracker";
+import { getLocalDateString } from "@/lib/local-date";
 import { persistListeningProgress } from "@/lib/local-listening-progress";
 import {
   hasPromptedForNotifications,
   markPromptedForNotifications,
 } from "@/lib/notification-permission-flag";
 import { requestNotificationPermissionAndRegister } from "@/lib/push-token-registration";
+import { supabase } from "@/lib/supabase";
+import { useDailyEngagementStore } from "@/stores/daily-engagement-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePlayerStore } from "@/stores/player-store";
+
+const STREAK_MILESTONES = new Set([7, 30, 100]);
+
+type StreakRow = { current_streak: number };
+
+async function recordStreakDay(): Promise<void> {
+  const { data, error } = await supabase
+    .rpc("record_listening_day", { p_local_date: getLocalDateString() })
+    .single()
+    .returns<StreakRow>();
+  if (error || !data) {
+    console.error("record_listening_day error:", error);
+    return;
+  }
+  if (STREAK_MILESTONES.has(data.current_streak)) {
+    useDailyEngagementStore.setState({ streakMilestone: data.current_streak });
+  }
+}
 
 // Render-nothing component, mounted once alongside <MiniPlayer />. It
 // exists because no native event fires on a 15s tick or a track
@@ -55,11 +77,20 @@ export function AudioStatusDriver() {
     }
   });
 
-  // 15-second save tick — a stable interval reading the latest status via
-  // a ref, so it isn't torn down and rebuilt on every ~500ms status
-  // update.
+  // 15-second tick — saves progress, and (signed-in users only)
+  // accumulates today's listening time toward the streak threshold. A
+  // stable interval reading the latest status via a ref, so it isn't
+  // torn down and rebuilt on every ~500ms status update.
   useEffect(() => {
-    const interval = setInterval(() => saveProgressRef.current(), 15000);
+    const interval = setInterval(() => {
+      saveProgressRef.current();
+      if (userIdRef.current && statusRef.current.playing) {
+        const crossedThreshold = recordListeningTick(15);
+        if (crossedThreshold) {
+          void recordStreakDay();
+        }
+      }
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
