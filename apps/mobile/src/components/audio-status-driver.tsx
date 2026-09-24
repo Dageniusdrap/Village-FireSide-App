@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 
 import { audioPlayer } from "@/lib/audio-player";
-import { recordListeningTick } from "@/lib/daily-listening-tracker";
+import { recordListeningTick, resetRecordedFlagForRetry } from "@/lib/daily-listening-tracker";
 import { fetchPublishedQuiz } from "@/lib/fetch-published-quiz";
 import { getLocalDateString } from "@/lib/local-date";
 import { persistListeningProgress } from "@/lib/local-listening-progress";
@@ -11,6 +11,7 @@ import {
   hasPromptedForNotifications,
   markPromptedForNotifications,
 } from "@/lib/notification-permission-flag";
+import { queryClient } from "@/lib/query-client";
 import { requestNotificationPermissionAndRegister } from "@/lib/push-token-registration";
 import { supabase } from "@/lib/supabase";
 import { useDailyEngagementStore } from "@/stores/daily-engagement-store";
@@ -28,8 +29,10 @@ async function recordStreakDay(): Promise<void> {
     .returns<StreakRow>();
   if (error || !data) {
     console.error("record_listening_day error:", error);
+    resetRecordedFlagForRetry();
     return;
   }
+  void queryClient.invalidateQueries({ queryKey: ["streak"] });
   if (STREAK_MILESTONES.has(data.current_streak)) {
     useDailyEngagementStore.setState({ streakMilestone: data.current_streak });
   }

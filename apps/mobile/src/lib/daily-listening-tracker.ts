@@ -80,3 +80,20 @@ export function recordListeningTick(seconds: number): boolean {
   writeState(nextState);
   return crossedThreshold;
 }
+
+/**
+ * Call when the caller's own record-keeping RPC (e.g. record_listening_day)
+ * fails after recordListeningTick returned true. Resets today's
+ * recordedForDate flag so the next 15s tick retries, instead of
+ * silently losing the day — recordListeningTick's own logic already
+ * treats a false recordedForDate with an already-past-threshold
+ * accumulatedSeconds as "crossed again," so this is safe and the RPC
+ * itself is idempotent for same-day repeat calls.
+ */
+export function resetRecordedFlagForRetry(): void {
+  const today = getLocalDateString();
+  const state = readState();
+  if (state.date === today && state.recordedForDate) {
+    writeState({ ...state, recordedForDate: false });
+  }
+}
