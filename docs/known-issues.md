@@ -194,3 +194,26 @@ case.
 
 **Severity:** None today (no real notifications sent yet). Will be a real
 deep-link bug once the notification sender ships.
+
+### No scheduled sender for the "Tonight at the Fireside" evening notification
+
+Prompt 13B's "Tonight at the Fireside" makes a daily featured episode a
+real, queryable fact (`daily_featured_episodes` plus deterministic
+auto-rotation, in `apps/mobile/src/hooks/queries/use-todays-featured-episode.ts`),
+but nothing sends the evening push notification the prompt pack
+describes. No scheduler and no Prompt 15 admin-dashboard trigger exist
+yet — the same gap Prompt 13 documented for its own push-notification
+send path, for the same reason (Prompt 15's admin dashboard doesn't
+exist yet). If/when a notification with an `episodeId` payload does
+arrive, Prompt 13's existing tap-to-deep-link listener
+(`apps/mobile/src/hooks/use-push-notification-listeners.ts`) already
+handles it generically — no new client code is needed there.
+
+**Fix shape:** needs a scheduled job (e.g. a cron-triggered edge
+function) that reads today's featured episode and sends via the same
+`push_tokens`-based mechanism Prompt 15 will build for its own sender —
+likely built alongside Prompt 15 rather than as separate infrastructure.
+
+**Severity:** Low today (no real notifications are sent for anything
+yet). Becomes a real gap once Prompt 15's sender exists and this
+feature is expected to use it.
