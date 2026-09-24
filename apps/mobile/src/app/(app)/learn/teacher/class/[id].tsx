@@ -96,6 +96,11 @@ export default function ClassDetailScreen() {
               <ThemedText type="small" themeColor="textSecondary">
                 {episode.listenerCount} listened
               </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {episode.quizCompletionCount > 0
+                  ? `Quiz avg: ${episode.quizAverageScore?.toFixed(1)}/${episode.quizAverageTotal?.toFixed(1)} (${episode.quizCompletionCount} completed)`
+                  : "No quiz completions yet"}
+              </ThemedText>
             </View>
           ))
         )}
