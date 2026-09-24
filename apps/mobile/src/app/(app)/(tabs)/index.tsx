@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { useCulturalGroupsEnabled } from "@/hooks/queries/use-app-settings";
+import { useStreak } from "@/hooks/queries/use-streak";
 import {
   useCategoryRail,
   useContinueListening,
@@ -133,6 +134,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const streak = useStreak();
   const featuredSeries = useFeaturedSeries();
   const elderVoicesSeries = useElderVoicesSeries();
   const continueListening = useContinueListening();
@@ -162,6 +164,12 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
       >
         <TabHeader title="Home" />
+
+        {streak.data && streak.data.currentStreak > 0 ? (
+          <ThemedText type="small" themeColor="accent">
+            🔥 {streak.data.currentStreak}-day streak
+          </ThemedText>
+        ) : null}
 
         <FeaturedEpisodeCard />
 

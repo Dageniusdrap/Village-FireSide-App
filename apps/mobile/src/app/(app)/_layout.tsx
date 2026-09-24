@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { NowPlayingOverlay } from "@/components/now-playing-overlay";
 import { PlaybackToast } from "@/components/playback-toast";
+import { StreakMilestoneToast } from "@/components/streak-milestone-toast";
 import { UnlockSheet } from "@/components/unlock-sheet";
 import { MiniPlayer } from "@/components/ui/mini-player";
 
@@ -38,6 +39,7 @@ export default function AppLayout() {
         <MiniPlayer />
         <UnlockSheet />
         <PlaybackToast />
+        <StreakMilestoneToast />
         <NowPlayingOverlay />
       </View>
     </ErrorBoundary>

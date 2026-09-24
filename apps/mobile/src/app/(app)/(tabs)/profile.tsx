@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { useProfile } from "@/hooks/queries/use-profile";
+import { useStreak } from "@/hooks/queries/use-streak";
 import { useAuthStore } from "@/stores/auth-store";
 
 export default function ProfileScreen() {
@@ -16,6 +17,7 @@ export default function ProfileScreen() {
   const signOut = useAuthStore((state) => state.signOut);
   const profileQuery = useProfile();
   const profile = profileQuery.data;
+  const streak = useStreak();
 
   return (
     <ThemedView style={styles.container}>
@@ -35,6 +37,11 @@ export default function ProfileScreen() {
                   : "Premium"
                 : "Not premium"}
             </ThemedText>
+            {streak.data && streak.data.currentStreak > 0 ? (
+              <ThemedText type="small" themeColor="accent">
+                🔥 {streak.data.currentStreak}-day streak (longest: {streak.data.longestStreak})
+              </ThemedText>
+            ) : null}
             <Button
               label={profile?.isPremium ? "Manage Premium" : "Buy Coins / Go Premium"}
               variant="secondary"
