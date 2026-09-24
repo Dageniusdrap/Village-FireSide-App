@@ -4,6 +4,7 @@ import { AppState } from "react-native";
 
 import { audioPlayer } from "@/lib/audio-player";
 import { recordListeningTick } from "@/lib/daily-listening-tracker";
+import { fetchPublishedQuiz } from "@/lib/fetch-published-quiz";
 import { getLocalDateString } from "@/lib/local-date";
 import { persistListeningProgress } from "@/lib/local-listening-progress";
 import {
@@ -118,9 +119,22 @@ export function AudioStatusDriver() {
   useEffect(() => {
     if (status.didJustFinish && !didJustFinishRef.current) {
       didJustFinishRef.current = true;
+      const finishedEpisode = episodeRef.current;
       if (userIdRef.current && !hasPromptedForNotifications()) {
         markPromptedForNotifications();
         void requestNotificationPermissionAndRegister(userIdRef.current);
+      }
+      // Async and non-blocking — runs independently of the
+      // auto-advance/sleep-timer logic below, so a slow or failed quiz
+      // check never delays next-episode playback.
+      if (userIdRef.current && finishedEpisode) {
+        void fetchPublishedQuiz(finishedEpisode.id).then((quiz) => {
+          if (quiz) {
+            useDailyEngagementStore.setState({
+              pendingQuizEpisode: { id: finishedEpisode.id, title: finishedEpisode.title },
+            });
+          }
+        });
       }
       if (sleepTimer.mode === "end-of-episode") {
         audioPlayer.pause();
