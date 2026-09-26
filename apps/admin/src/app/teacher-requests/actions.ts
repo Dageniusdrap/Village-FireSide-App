@@ -4,34 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { requireAdmin } from "@/lib/require-admin";
 
 export type ActionResult = { ok: true } | { ok: false; message: string };
-
-// Both Server Actions below previously relied entirely on proxy.ts's route
-// matcher to keep non-admins out — proxy.ts protects page navigation, but a
-// Server Action is its own callable endpoint and gets no such protection for
-// free. Check admin status here too, using the caller's own cookie-scoped
-// session (never the service-role client, which has no notion of "caller").
-async function requireAdmin(): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, message: "Not signed in." };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profile?.role !== "admin") {
-    return { ok: false, message: "Not authorized." };
-  }
-
-  return { ok: true };
-}
 
 export async function approveTeacherRequest(
   requestId: string,
