@@ -70,9 +70,33 @@ export async function deleteDestinationMedia(
   }
 
   const supabase = createServiceRoleClient();
+
+  const { data: mediaRow, error: fetchError } = await supabase
+    .from("destination_media")
+    .select("media_url")
+    .eq("id", id)
+    .single();
+  if (fetchError) {
+    return { ok: false, message: fetchError.message };
+  }
+
   const { error } = await supabase.from("destination_media").delete().eq("id", id);
   if (error) {
     return { ok: false, message: error.message };
+  }
+
+  const marker = "/object/public/images/";
+  const markerIndex = mediaRow.media_url.indexOf(marker);
+  if (markerIndex !== -1) {
+    const objectPath = mediaRow.media_url.slice(markerIndex + marker.length);
+    // Best-effort — the row is already gone either way; a storage
+    // cleanup failure shouldn't block the user-visible delete from
+    // succeeding, matching this app's existing best-effort pattern for
+    // non-critical cleanup (see logAdminAction's own rationale).
+    const { error: storageError } = await supabase.storage.from("images").remove([objectPath]);
+    if (storageError) {
+      console.error("deleteDestinationMedia: failed to remove storage object:", storageError);
+    }
   }
 
   await logAdminAction(admin.adminId, "update", "destination", destinationId, {
