@@ -194,3 +194,21 @@ case.
 
 **Severity:** None today (no real notifications sent yet). Will be a real
 deep-link bug once the notification sender ships.
+
+## Admin
+
+### Destination media gallery has no video support
+
+The `destination_media` table's `media_type` column supports `'video'`,
+but the admin dashboard's media gallery (Prompt 14) only implements
+image upload — video upload/preview is meaningfully more UI work than
+images (no free inline `<img>`-style preview), and the prompt's own text
+only said "media gallery upload" without calling out video specifically.
+
+**Fix shape:** add a video file-type branch to `MediaGallery`'s upload
+handler (`apps/admin/src/app/(dashboard)/destinations/media-gallery.tsx`)
+and render an inline `<video>` preview instead of `<img>` when
+`media_type = 'video'`.
+
+**Severity:** Low. No destination currently needs video, and adding it
+later is additive — no schema or existing-row migration needed.
