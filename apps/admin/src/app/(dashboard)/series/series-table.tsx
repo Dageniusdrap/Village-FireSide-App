@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/button";
 import { DataTable } from "@/components/data-table";
 
 import { deleteSeries, toggleSeriesPublish } from "./actions";

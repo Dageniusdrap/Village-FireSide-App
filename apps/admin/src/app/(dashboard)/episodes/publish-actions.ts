@@ -55,7 +55,7 @@ async function loadPublishCheckInputs(
   }
 
   const contributorIds = links.map((link) => link.contributor_id);
-  let consentsByContributor = new Map<string, string[]>();
+  const consentsByContributor = new Map<string, string[]>();
   if (contributorIds.length > 0) {
     // `consents` has no unique constraint on (contributor_id, consent_type)
     // and no updated_at — a "revoke" can land as a brand-new row rather

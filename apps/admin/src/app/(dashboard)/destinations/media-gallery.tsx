@@ -4,7 +4,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { Button } from "@/components/button";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -95,8 +94,8 @@ export function MediaGallery({
       <span>Photo Gallery</span>
       <ul className="flex flex-col gap-2">
         {sorted.map((item, index) => (
-          // eslint-disable-next-line @next/next/no-img-element -- admin-only upload preview, not app content
           <li key={item.id} className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- admin-only upload preview, not app content */}
             <img src={item.media_url} alt={item.caption ?? ""} className="h-16 w-16 object-cover" />
             <span className="text-sm text-gray-600">{item.caption ?? "—"}</span>
             <div className="ml-auto flex gap-2">
