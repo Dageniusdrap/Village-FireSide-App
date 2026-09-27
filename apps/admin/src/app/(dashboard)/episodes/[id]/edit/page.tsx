@@ -27,6 +27,18 @@ export default async function EditEpisodePage({ params }: { params: Promise<{ id
     notFound();
   }
 
+  if (linksResult.error) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-xl font-semibold">Edit Episode</h1>
+        <p className="text-red-600">
+          Failed to load this episode&apos;s linked contributors: {linksResult.error.message}.
+          Reload the page to try again — saving now would incorrectly clear all contributor links.
+        </p>
+      </div>
+    );
+  }
+
   const existingLinks = (linksResult.data ?? []).map((link) => ({
     contributorId: link.contributor_id,
     role: link.role,
