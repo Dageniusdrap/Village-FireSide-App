@@ -54,3 +54,21 @@ export const episodeSchema = z.object({
   durationSeconds: z.coerce.number().int().positive().optional(),
 });
 export type EpisodeInput = z.infer<typeof episodeSchema>;
+
+export const destinationSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  slug: z.string().trim().min(1, "Slug is required"),
+  description: z.string().trim().optional(),
+  region: z.string().trim().optional(),
+  district: z.string().trim().optional(),
+  country: z.string().trim().optional(),
+  bestTimeToVisit: z.string().trim().optional(),
+  entryFeeNotes: z.string().trim().optional(),
+  safetyNotes: z.string().trim().optional(),
+  conservationNotes: z.string().trim().optional(),
+  coverImageUrl: z.string().optional(),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
+  isPublished: z.boolean(),
+});
+export type DestinationInput = z.infer<typeof destinationSchema>;
