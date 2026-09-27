@@ -1872,7 +1872,7 @@ type EpisodeContributorRow = {
   contributors: { contributor_type: string } | null;
 };
 
-type ConsentRow = { contributor_id: string; consent_status: string };
+type ConsentRow = { contributor_id: string; consent_status: string; created_at: string };
 
 async function loadPublishCheckInputs(
   supabase: ReturnType<typeof createServiceRoleClient>,
@@ -1911,21 +1911,30 @@ async function loadPublishCheckInputs(
   const contributorIds = links.map((link) => link.contributor_id);
   let consentsByContributor = new Map<string, string[]>();
   if (contributorIds.length > 0) {
+    // `consents` has no unique constraint on (contributor_id, consent_type)
+    // and no updated_at — a "revoke" can land as a brand-new row rather
+    // than an in-place status change, so multiple rows can genuinely
+    // exist for the same contributor+type over time. Ordering by
+    // created_at desc and keeping only the FIRST (most recent) row per
+    // contributor is load-bearing: without it, a contributor whose
+    // consent was later revoked would still show a historical "granted"
+    // entry, and checkPublishRequirements' `.includes("granted")` check
+    // (Task 12) would incorrectly treat them as currently consented.
     const { data: consents, error: consentsError } = await supabase
       .from("consents")
-      .select("contributor_id, consent_status")
+      .select("contributor_id, consent_status, created_at")
       .eq("consent_type", "story_recording")
       .in("contributor_id", contributorIds)
+      .order("created_at", { ascending: false })
       .returns<ConsentRow[]>();
     if (consentsError) {
       return { ok: false, message: consentsError.message };
     }
-    consentsByContributor = consents.reduce((map, row) => {
-      const existing = map.get(row.contributor_id) ?? [];
-      existing.push(row.consent_status);
-      map.set(row.contributor_id, existing);
-      return map;
-    }, new Map<string, string[]>());
+    for (const row of consents) {
+      if (!consentsByContributor.has(row.contributor_id)) {
+        consentsByContributor.set(row.contributor_id, [row.consent_status]);
+      }
+    }
   }
 
   const linkedContributors: ContributorConsentInfo[] = links.map((link) => ({
