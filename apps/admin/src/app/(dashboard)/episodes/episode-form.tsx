@@ -120,8 +120,12 @@ export function EpisodeForm({
       setUploading(false);
       return;
     }
-    const { data } = supabase.storage.from("audio-episodes").getPublicUrl(path);
-    setValue("audioUrl", data.publicUrl);
+    // audio-episodes is a private bucket — episodes.audio_url stores the
+    // bucket-relative object path, not a public URL. Playback goes through
+    // the get-episode-audio Edge Function's createSignedUrl(audio_url, ...),
+    // which treats this field as the storage key itself (see
+    // docs/media-pipeline.md). Do NOT call getPublicUrl() here.
+    setValue("audioUrl", path);
     setValue("durationSeconds", duration);
     setUploading(false);
   };

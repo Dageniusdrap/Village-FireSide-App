@@ -101,6 +101,10 @@ async function loadPublishCheckInputs(
 }
 
 export async function validateEpisodeForPublish(episodeId: string): Promise<PublishCheck[]> {
+  const admin = await requireAdmin();
+  if (!admin.ok) {
+    return [{ label: "Authorization", passed: false, reason: admin.message }];
+  }
   const supabase = createServiceRoleClient();
   const inputs = await loadPublishCheckInputs(supabase, episodeId);
   if (!inputs.ok) {
