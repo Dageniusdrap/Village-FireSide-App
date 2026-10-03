@@ -1439,7 +1439,7 @@ git commit -m "Prompt 14: add series list, new, and edit pages"
 **Interfaces:**
 
 - Consumes: `requireAdmin`, `logAdminAction` (Task 3).
-- Produces: `episodeSchema`, `EpisodeInput` type; `ContributorLink` type; `createEpisode(input: EpisodeInput, contributorLinks: ContributorLink[]): Promise<ActionResult>`, `updateEpisode(id: string, input: EpisodeInput, contributorLinks: ContributorLink[]): Promise<ActionResult>`, `deleteEpisode(id: string): Promise<ActionResult>`. Consumed by Task 14 (`EpisodeForm`), Task 15 (`ContributorLinker`, which imports the `ContributorLink` type), Task 17 (list page).
+- Produces: `episodeSchema`, `EpisodeInput` type; `ContributorLink` type; `createEpisode(input: EpisodeInput, contributorLinks: ContributorLink[]): Promise<ActionResult>`, `updateEpisode(id: string, input: EpisodeInput, contributorLinks: ContributorLink[]): Promise<ActionResult>`, `deleteEpisode(id: string): Promise<ActionResult>`. Consumed by Task 14 (`ContributorLinker`, which imports the `ContributorLink` type), Task 15 (`EpisodeForm`), Task 17 (list page).
 
 - [ ] **Step 1: Add the episode schema**
 
@@ -1872,7 +1872,7 @@ type EpisodeContributorRow = {
   contributors: { contributor_type: string } | null;
 };
 
-type ConsentRow = { contributor_id: string; consent_status: string };
+type ConsentRow = { contributor_id: string; consent_status: string; created_at: string };
 
 async function loadPublishCheckInputs(
   supabase: ReturnType<typeof createServiceRoleClient>,
@@ -1911,21 +1911,30 @@ async function loadPublishCheckInputs(
   const contributorIds = links.map((link) => link.contributor_id);
   let consentsByContributor = new Map<string, string[]>();
   if (contributorIds.length > 0) {
+    // `consents` has no unique constraint on (contributor_id, consent_type)
+    // and no updated_at — a "revoke" can land as a brand-new row rather
+    // than an in-place status change, so multiple rows can genuinely
+    // exist for the same contributor+type over time. Ordering by
+    // created_at desc and keeping only the FIRST (most recent) row per
+    // contributor is load-bearing: without it, a contributor whose
+    // consent was later revoked would still show a historical "granted"
+    // entry, and checkPublishRequirements' `.includes("granted")` check
+    // (Task 12) would incorrectly treat them as currently consented.
     const { data: consents, error: consentsError } = await supabase
       .from("consents")
-      .select("contributor_id, consent_status")
+      .select("contributor_id, consent_status, created_at")
       .eq("consent_type", "story_recording")
       .in("contributor_id", contributorIds)
+      .order("created_at", { ascending: false })
       .returns<ConsentRow[]>();
     if (consentsError) {
       return { ok: false, message: consentsError.message };
     }
-    consentsByContributor = consents.reduce((map, row) => {
-      const existing = map.get(row.contributor_id) ?? [];
-      existing.push(row.consent_status);
-      map.set(row.contributor_id, existing);
-      return map;
-    }, new Map<string, string[]>());
+    for (const row of consents) {
+      if (!consentsByContributor.has(row.contributor_id)) {
+        consentsByContributor.set(row.contributor_id, [row.consent_status]);
+      }
+    }
   }
 
   const linkedContributors: ContributorConsentInfo[] = links.map((link) => ({
@@ -2019,7 +2028,131 @@ git commit -m "Prompt 14: add publish/unpublish server actions with re-validatio
 
 ---
 
-### Task 14: `EpisodeForm` (fields + audio upload)
+### Task 14: `ContributorLinker`
+
+**Files:**
+
+- Create: `apps/admin/src/app/(dashboard)/episodes/contributor-linker.tsx`
+
+**Interfaces:**
+
+- Consumes: `ContributorLink` (Task 11), `Button`/`TextInput`/`Select` (Task 4).
+- Produces: `ContributorLinker({ options, links, onChange }: ContributorLinkerProps)`, `ContributorOption` type. Consumed by Task 15 (`EpisodeForm`).
+
+A searchable select-and-add UI: pick a contributor from a dropdown, type a role, add it to the list; each added row can be removed. State lives entirely in the parent `EpisodeForm` (via `links`/`onChange`) so the whole set gets submitted together with the rest of the form — matches the "full replace on save" design from the spec.
+
+- [ ] **Step 1: Write `ContributorLinker`**
+
+```tsx
+// apps/admin/src/app/(dashboard)/episodes/contributor-linker.tsx
+"use client";
+
+import { useState } from "react";
+
+import { Button } from "@/components/button";
+import { Select } from "@/components/select";
+import { TextInput } from "@/components/text-input";
+
+import type { ContributorLink } from "./actions";
+
+export type ContributorOption = { id: string; display_name: string; contributor_type: string };
+
+export function ContributorLinker({
+  options,
+  links,
+  onChange,
+}: {
+  options: ContributorOption[];
+  links: ContributorLink[];
+  onChange: (links: ContributorLink[]) => void;
+}) {
+  const [selectedContributorId, setSelectedContributorId] = useState("");
+  const [role, setRole] = useState("");
+
+  const handleAdd = () => {
+    if (!selectedContributorId || !role.trim()) {
+      return;
+    }
+    onChange([...links, { contributorId: selectedContributorId, role: role.trim() }]);
+    setSelectedContributorId("");
+    setRole("");
+  };
+
+  const handleRemove = (index: number) => {
+    onChange(links.filter((_, i) => i !== index));
+  };
+
+  const optionsById = new Map(options.map((option) => [option.id, option]));
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span>Contributors</span>
+      {links.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {links.map((link, index) => (
+            <li
+              key={`${link.contributorId}-${link.role}-${index}`}
+              className="flex items-center gap-2"
+            >
+              <span>
+                {optionsById.get(link.contributorId)?.display_name ?? link.contributorId} —{" "}
+                {link.role}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemove(index)}
+                className="text-sm text-red-700 hover:underline"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex gap-2">
+        <Select
+          value={selectedContributorId}
+          onChange={(e) => setSelectedContributorId(e.target.value)}
+        >
+          <option value="">Select a contributor</option>
+          {options.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.display_name} ({option.contributor_type})
+            </option>
+          ))}
+        </Select>
+        <TextInput
+          placeholder="Role (e.g. narrator)"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+        />
+        <Button type="button" variant="secondary" onClick={handleAdd}>
+          Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Typecheck**
+
+```bash
+pnpm typecheck
+```
+
+Expected: 0 errors.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add "apps/admin/src/app/(dashboard)/episodes/contributor-linker.tsx"
+git commit -m "Prompt 14: add ContributorLinker"
+```
+
+---
+
+### Task 15: `EpisodeForm` (fields + audio upload)
 
 **Files:**
 
@@ -2027,7 +2160,7 @@ git commit -m "Prompt 14: add publish/unpublish server actions with re-validatio
 
 **Interfaces:**
 
-- Consumes: `episodeSchema`/`EpisodeInput` (Task 11), `createEpisode`/`updateEpisode` (Task 11), `ContributorLinker` (Task 15), `Button`/`TextInput`/`Textarea`/`Select` (Task 4).
+- Consumes: `episodeSchema`/`EpisodeInput` (Task 11), `createEpisode`/`updateEpisode` (Task 11), `ContributorLinker` (Task 14), `Button`/`TextInput`/`Textarea`/`Select` (Task 4).
 - Produces: `EpisodeForm({ episode, seriesOptions, sourceMaterialOptions, contributorOptions, existingLinks }: EpisodeFormProps)`. Consumed by Task 17's new/edit pages.
 
 - [ ] **Step 1: Write `EpisodeForm`**
@@ -2329,130 +2462,6 @@ git commit -m "Prompt 14: add EpisodeForm with audio upload and duration detecti
 
 ---
 
-### Task 15: `ContributorLinker`
-
-**Files:**
-
-- Create: `apps/admin/src/app/(dashboard)/episodes/contributor-linker.tsx`
-
-**Interfaces:**
-
-- Consumes: `ContributorLink` (Task 11), `Button`/`TextInput`/`Select` (Task 4).
-- Produces: `ContributorLinker({ options, links, onChange }: ContributorLinkerProps)`, `ContributorOption` type. Consumed by Task 14 (`EpisodeForm`).
-
-A searchable select-and-add UI: pick a contributor from a dropdown, type a role, add it to the list; each added row can be removed. State lives entirely in the parent `EpisodeForm` (via `links`/`onChange`) so the whole set gets submitted together with the rest of the form — matches the "full replace on save" design from the spec.
-
-- [ ] **Step 1: Write `ContributorLinker`**
-
-```tsx
-// apps/admin/src/app/(dashboard)/episodes/contributor-linker.tsx
-"use client";
-
-import { useState } from "react";
-
-import { Button } from "@/components/button";
-import { Select } from "@/components/select";
-import { TextInput } from "@/components/text-input";
-
-import type { ContributorLink } from "./actions";
-
-export type ContributorOption = { id: string; display_name: string; contributor_type: string };
-
-export function ContributorLinker({
-  options,
-  links,
-  onChange,
-}: {
-  options: ContributorOption[];
-  links: ContributorLink[];
-  onChange: (links: ContributorLink[]) => void;
-}) {
-  const [selectedContributorId, setSelectedContributorId] = useState("");
-  const [role, setRole] = useState("");
-
-  const handleAdd = () => {
-    if (!selectedContributorId || !role.trim()) {
-      return;
-    }
-    onChange([...links, { contributorId: selectedContributorId, role: role.trim() }]);
-    setSelectedContributorId("");
-    setRole("");
-  };
-
-  const handleRemove = (index: number) => {
-    onChange(links.filter((_, i) => i !== index));
-  };
-
-  const optionsById = new Map(options.map((option) => [option.id, option]));
-
-  return (
-    <div className="flex flex-col gap-2">
-      <span>Contributors</span>
-      {links.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {links.map((link, index) => (
-            <li
-              key={`${link.contributorId}-${link.role}-${index}`}
-              className="flex items-center gap-2"
-            >
-              <span>
-                {optionsById.get(link.contributorId)?.display_name ?? link.contributorId} —{" "}
-                {link.role}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemove(index)}
-                className="text-sm text-red-700 hover:underline"
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="flex gap-2">
-        <Select
-          value={selectedContributorId}
-          onChange={(e) => setSelectedContributorId(e.target.value)}
-        >
-          <option value="">Select a contributor</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.display_name} ({option.contributor_type})
-            </option>
-          ))}
-        </Select>
-        <TextInput
-          placeholder="Role (e.g. narrator)"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        />
-        <Button type="button" variant="secondary" onClick={handleAdd}>
-          Add
-        </Button>
-      </div>
-    </div>
-  );
-}
-```
-
-- [ ] **Step 2: Typecheck**
-
-```bash
-pnpm typecheck
-```
-
-Expected: 0 errors.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add "apps/admin/src/app/(dashboard)/episodes/contributor-linker.tsx"
-git commit -m "Prompt 14: add ContributorLinker"
-```
-
----
-
 ### Task 16: `PublishGuardPanel`
 
 **Files:**
@@ -2589,7 +2598,7 @@ git commit -m "Prompt 14: add PublishGuardPanel"
 
 **Interfaces:**
 
-- Consumes: `DataTable` (Task 5), `EpisodeForm`/`EpisodeRow`/`SeriesOption`/`SourceMaterialOption` (Task 14), `ContributorOption` (Task 15), `PublishGuardPanel` (Task 16), `deleteEpisode` (Task 11).
+- Consumes: `DataTable` (Task 5), `ContributorOption` (Task 14), `EpisodeForm`/`EpisodeRow`/`SeriesOption`/`SourceMaterialOption` (Task 15), `PublishGuardPanel` (Task 16), `deleteEpisode` (Task 11).
 
 - [ ] **Step 1: Write `EpisodeTable`**
 

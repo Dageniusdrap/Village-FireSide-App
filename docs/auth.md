@@ -92,3 +92,6 @@ manually.
    ```
 
 3. That account can now sign in at `/sign-in` in the admin app.
+
+For local development, use the shared test accounts in
+[test-accounts.md](test-accounts.md) instead of creating your own.
