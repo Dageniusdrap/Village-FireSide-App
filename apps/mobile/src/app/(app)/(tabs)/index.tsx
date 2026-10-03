@@ -1,9 +1,11 @@
 // apps/mobile/src/app/(app)/(tabs)/index.tsx
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ThemedText } from "@/components/themed-text";
+import { Card } from "@/components/ui/card";
 import { DestinationCard } from "@/components/ui/destination-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EpisodeRow } from "@/components/ui/episode-row";
@@ -13,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TabHeader } from "@/components/ui/tab-header";
 import { Spacing } from "@/constants/theme";
 import { useCulturalGroupsEnabled } from "@/hooks/queries/use-app-settings";
+import { useStreak } from "@/hooks/queries/use-streak";
 import {
   useCategoryRail,
   useContinueListening,
@@ -21,6 +24,9 @@ import {
   useFeaturedSeries,
   useStorytellers,
 } from "@/hooks/queries/use-home-sections";
+import { useTodaysFeaturedEpisode } from "@/hooks/queries/use-todays-featured-episode";
+import { formatDuration } from "@/lib/format-duration";
+import { usePlayerStore } from "@/stores/player-store";
 
 const CATEGORY_RAILS = [
   { key: "lakes", title: "Lakes" },
@@ -90,10 +96,45 @@ function CategoryRailSection({
   );
 }
 
+function FeaturedEpisodeCard() {
+  const featured = useTodaysFeaturedEpisode();
+  const playQueue = usePlayerStore((state) => state.playQueue);
+
+  if (featured.isLoading) {
+    return <Skeleton width="100%" height={100} />;
+  }
+  if (!featured.data) {
+    return null; // no published free episodes exist yet — nothing to feature
+  }
+
+  const episode = featured.data;
+
+  return (
+    <Pressable
+      onPress={() => {
+        void playQueue([episode.queueEpisode], 0);
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={`Play tonight's story: ${episode.title}`}
+    >
+      <Card style={styles.featuredCard}>
+        <ThemedText type="small" themeColor="accent">
+          🔥 Tonight at the Fireside
+        </ThemedText>
+        <ThemedText type="subtitle">{episode.title}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {formatDuration(episode.durationSeconds)}
+        </ThemedText>
+      </Card>
+    </Pressable>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const streak = useStreak();
   const featuredSeries = useFeaturedSeries();
   const elderVoicesSeries = useElderVoicesSeries();
   const continueListening = useContinueListening();
@@ -123,6 +164,14 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
       >
         <TabHeader title="Home" />
+
+        {streak.data && streak.data.currentStreak > 0 ? (
+          <ThemedText type="small" themeColor="accent">
+            🔥 {streak.data.currentStreak}-day streak
+          </ThemedText>
+        ) : null}
+
+        <FeaturedEpisodeCard />
 
         <SectionHeader title="Featured" />
         <SeriesRail query={featuredSeries} onPressSeries={goToSeries} />
@@ -223,5 +272,8 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: Spacing.three,
+  },
+  featuredCard: {
+    gap: Spacing.one,
   },
 });

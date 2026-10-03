@@ -4,6 +4,8 @@ import { StyleSheet, View } from "react-native";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { NowPlayingOverlay } from "@/components/now-playing-overlay";
 import { PlaybackToast } from "@/components/playback-toast";
+import { QuizPromptSheet } from "@/components/quiz-prompt-sheet";
+import { StreakMilestoneToast } from "@/components/streak-milestone-toast";
 import { UnlockSheet } from "@/components/unlock-sheet";
 import { MiniPlayer } from "@/components/ui/mini-player";
 
@@ -21,6 +23,7 @@ export default function AppLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="search" options={{ headerShown: false }} />
+          <Stack.Screen name="quiz/[episodeId]" options={{ headerShown: false }} />
           <Stack.Screen name="series/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="contributor/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="cultural-group/[id]" options={{ headerShown: false }} />
@@ -37,7 +40,9 @@ export default function AppLayout() {
         </Stack>
         <MiniPlayer />
         <UnlockSheet />
+        <QuizPromptSheet />
         <PlaybackToast />
+        <StreakMilestoneToast />
         <NowPlayingOverlay />
       </View>
     </ErrorBoundary>

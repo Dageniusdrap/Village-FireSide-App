@@ -194,3 +194,68 @@ case.
 
 **Severity:** None today (no real notifications sent yet). Will be a real
 deep-link bug once the notification sender ships.
+
+### No scheduled sender for the "Tonight at the Fireside" evening notification
+
+Prompt 13B's "Tonight at the Fireside" makes a daily featured episode a
+real, queryable fact (`daily_featured_episodes` plus deterministic
+auto-rotation, in `apps/mobile/src/hooks/queries/use-todays-featured-episode.ts`),
+but nothing sends the evening push notification the prompt pack
+describes. No scheduler and no Prompt 15 admin-dashboard trigger exist
+yet — the same gap Prompt 13 documented for its own push-notification
+send path, for the same reason (Prompt 15's admin dashboard doesn't
+exist yet). If/when a notification with an `episodeId` payload does
+arrive, Prompt 13's existing tap-to-deep-link listener
+(`apps/mobile/src/hooks/use-push-notification-listeners.ts`) already
+handles it generically — no new client code is needed there.
+
+**Fix shape:** needs a scheduled job (e.g. a cron-triggered edge
+function) that reads today's featured episode and sends via the same
+`push_tokens`-based mechanism Prompt 15 will build for its own sender —
+likely built alongside Prompt 15 rather than as separate infrastructure.
+
+**Severity:** Low today (no real notifications are sent for anything
+yet). Becomes a real gap once Prompt 15's sender exists and this
+feature is expected to use it.
+
+## Backend / Database
+
+### `revoke ... from public` does not revoke `anon`'s execute privilege on new functions
+
+Supabase grants every new function its own default privileges via
+`alter default privileges ... grant execute on functions to anon,
+authenticated, service_role`, issued once at the project/schema level.
+This gives `anon` a separate, explicit ACL entry on each function at
+creation time — independent of the `public` pseudo-role. A migration's
+`revoke all on function f(...) from public;` does not touch that entry,
+so `anon` retains `EXECUTE` on the function even after the revoke,
+unless a migration also runs `revoke execute on function f(...) from
+anon;` explicitly.
+
+This has caused a real bug twice within Prompt 13B alone: `record_listening_day`
+(`supabase/migrations/20260922100100_listener_streaks_and_record_listening_day.sql`)
+shipped with only the `from public` revoke, was caught in review, and
+fixed with an explicit `from anon` revoke one migration later
+(`20260922100105`). The very next migration in the same prompt,
+`class_quiz_scores`
+(`supabase/migrations/20260922100200_quizzes_and_class_quiz_scores.sql`),
+reused the identical `from public`-only pattern and reintroduced the
+same gap — not caught until the final whole-branch review, fixed in
+`20260922100300`. Both occurrences had low practical impact (the
+functions' own internal `auth.uid()`-based checks independently
+excluded `anon` from any real data access), but the grant itself was
+wrong both times, and a future security-definer function with a less
+careful internal check could turn this into a real exposure.
+
+**Fix shape:** grep the whole codebase for `revoke all on function` /
+`revoke execute on function` during Prompt 18's security audit (the
+planned automated RLS/privilege test harness) and confirm every
+security-definer (or otherwise sensitive) function's migration includes
+an explicit `revoke execute ... from anon`, not just `from public`.
+Consider adding a lint/test check that fails a migration review if a
+new function grants execute to `authenticated` without a matching
+`anon` revoke, so this doesn't need to be caught by hand a third time.
+
+**Severity:** Low today (both known occurrences are closed, and neither
+ever allowed real data exposure). Worth auditing proactively since it's
+an easy pattern to reintroduce and has already recurred once.
