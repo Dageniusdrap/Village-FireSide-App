@@ -7,11 +7,20 @@ export type AssignedEpisode = {
   episodeId: string;
   title: string;
   listenerCount: number;
+  quizAverageScore: number | null;
+  quizAverageTotal: number | null;
+  quizCompletionCount: number;
 };
 
 type ClassRow = { id: string; name: string; join_code: string };
 type AssignmentRow = { episode_id: string; episodes: { title: string } | null };
 type ListenCountRow = { episode_id: string; listener_count: number };
+type QuizScoreRow = {
+  episode_id: string;
+  average_score: number | null;
+  average_total: number | null;
+  completion_count: number;
+};
 
 export function useClassDetail(classId: string) {
   return useQuery({
@@ -53,6 +62,17 @@ export function useClassDetail(classId: string) {
         ((countRows ?? []) as ListenCountRow[]).map((row) => [row.episode_id, row.listener_count]),
       );
 
+      const { data: quizScoreRows, error: quizScoreError } = await supabase.rpc(
+        "class_quiz_scores",
+        { p_class_id: classId },
+      );
+      if (quizScoreError) {
+        throw quizScoreError;
+      }
+      const quizScoresByEpisode = new Map(
+        ((quizScoreRows ?? []) as QuizScoreRow[]).map((row) => [row.episode_id, row]),
+      );
+
       return {
         id: classRow.id,
         name: classRow.name,
@@ -61,11 +81,17 @@ export function useClassDetail(classId: string) {
           .filter(
             (row): row is AssignmentRow & { episodes: { title: string } } => row.episodes !== null,
           )
-          .map((row) => ({
-            episodeId: row.episode_id,
-            title: row.episodes.title,
-            listenerCount: countsByEpisode.get(row.episode_id) ?? 0,
-          })),
+          .map((row) => {
+            const quizScore = quizScoresByEpisode.get(row.episode_id);
+            return {
+              episodeId: row.episode_id,
+              title: row.episodes.title,
+              listenerCount: countsByEpisode.get(row.episode_id) ?? 0,
+              quizAverageScore: quizScore?.average_score ?? null,
+              quizAverageTotal: quizScore?.average_total ?? null,
+              quizCompletionCount: quizScore?.completion_count ?? 0,
+            };
+          }),
       };
     },
   });
