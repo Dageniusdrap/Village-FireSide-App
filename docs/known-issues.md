@@ -277,3 +277,31 @@ and render an inline `<video>` preview instead of `<img>` when
 
 **Severity:** Low. No destination currently needs video, and adding it
 later is additive — no schema or existing-row migration needed.
+
+### Admin test account has a weak password
+
+The shared admin test account (`admin-test@villagefireside.app`, see
+[test-accounts.md](test-accounts.md)) currently has a short, dictionary-style
+password chosen for convenience during development. The value is
+deliberately not recorded here — this repo is public — and lives only in
+the gitignored `apps/admin/.env.local`. The admin role has full read/write
+access to every table through `is_admin()`, and the account sits on the
+live Supabase project (`dulratrptkkswvbbrffc`), so anyone who guesses the
+password gets that access.
+
+Separately, the project has no minimum password-strength policy, so
+nothing stops the same thing happening to a real account.
+
+**Fix shape:** before any real content or elder data (contributors,
+consents, recordings) is added to the project:
+
+1. Set a strong `TEST_ADMIN_PASSWORD` in `apps/admin/.env.local` and run
+   `pnpm provision:test-accounts --reset-passwords` from `apps/admin`
+   (this resets all three test accounts to their `.env.local` values).
+2. In the Supabase dashboard, under Authentication → Policies, set a
+   minimum password length and required character types, and consider
+   enabling leaked-password protection.
+
+**Severity:** Low while the project holds only test data. High the
+moment real elder or contributor data is added — must be closed before
+then, and before launch at the latest.
