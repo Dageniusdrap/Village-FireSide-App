@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "provision:test-accounts": "node --env-file=.env.local scripts/provision-test-accounts.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
