@@ -30,3 +30,15 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build admin
+        run: pnpm --filter admin build
+        env:
+          # Placeholders so the Supabase clients can be constructed at build
+          # time. Not real credentials; the build never contacts Supabase.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
