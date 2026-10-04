@@ -59,6 +59,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "186600a2-fc3c-42e9-aa32-c2c6b33e61f3"
+      }
+    },
+    "owner": "dradriga"
   }
 }

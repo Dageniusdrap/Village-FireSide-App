@@ -109,27 +109,30 @@ future marketing-site effort.
 sharing with another existing user). Non-user recipients get a dead
 link until the domain infrastructure above exists.
 
-### Push token registration cannot succeed until an EAS project is configured
+### Push tokens can't be verified until a development build exists
 
-`apps/mobile/src/lib/push-token-registration.ts`'s `registerPushToken` calls
-`Notifications.getExpoPushTokenAsync()`, which needs an EAS project ID —
-either `app.json`'s `extra.eas.projectId` or a linked `eas.json` — neither
-of which exists anywhere in this repo (confirmed by grepping the whole
-repo). Until that infra exists, the call throws
-`ERR_NOTIFICATIONS_NO_EXPERIENCE_ID` every time; per the package's own doc
-comment it can also reject when the device is offline, independent of the
-EAS-config gap. `registerPushToken` and
-`requestNotificationPermissionAndRegister` now wrap their bodies in
-try/catch, so this fails silently (no unhandled-rejection warnings, no
-crash) rather than surfacing to the user — but no token will ever reach the
-`push_tokens` table until an EAS project is configured.
+An EAS project now exists (`@dradriga/village-fireside`, created
+2026-10-04), and its ID is in `app.json` under `extra.eas.projectId`, which
+`apps/mobile/src/lib/push-token-registration.ts` already reads. That
+removes the `ERR_NOTIFICATIONS_NO_EXPERIENCE_ID` failure this entry used to
+describe.
 
-**Fix shape:** configure an EAS project (`eas init`, or manually set
-`app.json`'s `extra.eas.projectId`), then verify `registerPushToken`
-succeeds against a real device/build.
+Nothing has yet confirmed a real token reaching `push_tokens`, though.
+Remote push doesn't work in Expo Go on Android, so it needs a development
+build on a real device, and Android delivery also needs a Firebase project
+with FCM credentials uploaded to EAS. Registration still fails silently
+(try/catch) if anything is missing, and can also fail when the device is
+offline.
 
-**Severity:** Low today (nothing sends real notifications yet). Blocks the
-push-notification feature entirely until EAS is configured.
+**Fix shape:** create a Firebase project and upload its FCM credentials to
+EAS, make an Android development build (`eas build --profile development`),
+install it on a device, and confirm a row appears in `push_tokens`. Then
+test delivery end to end with the Prompt 15 notification composer. (iOS
+also needs a paid Apple Developer account.)
+
+**Severity:** Blocks real push delivery, including the Prompt 15 composer,
+until a development build and Firebase are set up. Deliberately deferred
+to its own session.
 
 ### Search results aren't ranked by relevance
 
