@@ -42,3 +42,60 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+
+  db-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_CLI_VERSION: 2.111.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Restore Docker image cache
+        id: image-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/supabase-images.tar
+          key: supabase-images-${{ env.SUPABASE_CLI_VERSION }}-${{ hashFiles('supabase/config.toml') }}
+
+      - name: Load cached Docker images
+        if: steps.image-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/supabase-images.tar
+
+      - name: Start local Supabase
+        run: supabase start -x studio,logflare,vector,mailpit,realtime,imgproxy,supavisor,postgres-meta
+
+      - name: Save Docker images for the cache
+        if: steps.image-cache.outputs.cache-hit != 'true'
+        run: |
+          docker save $(docker images --format '{{.Repository}}:{{.Tag}}' | grep 'supabase/') -o /tmp/supabase-images.tar
+
+      - name: Export local keys
+        run: supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY)=' | sed -e 's/^ANON_KEY=/SUPABASE_ANON_KEY=/' -e 's/^SERVICE_ROLE_KEY=/SUPABASE_SERVICE_ROLE_KEY=/' >> "$GITHUB_ENV"
+
+      - name: Migration on existing data
+        run: bash supabase/tests/upgrade/run.sh
+
+      - name: pgTAP
+        run: pnpm test:db
+
+      - name: Integration tests
+        run: pnpm test:integration
