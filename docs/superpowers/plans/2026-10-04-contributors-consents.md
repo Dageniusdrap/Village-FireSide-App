@@ -7547,6 +7547,26 @@ Nothing in this milestone runs without the user's explicit approval at Task 28 S
 
 ### Task 28: Apply to the live project (approval required)
 
+- [ ] **Step 0: Remove the temporary admin-operations push trigger from ci.yml**
+
+During Milestone 1, `.github/workflows/ci.yml` got a temporary push trigger so `db-tests` could be timed without a PR (commit `abf3f7f`). Remove it before the PR merges: change
+
+```yaml
+push:
+  # TEMPORARY: admin-operations runs CI on push so db-tests can be timed
+  # without a PR. Removed in Task 28 Step 0 (plan: 2026-10-04-contributors-consents.md).
+  branches: [main, admin-operations]
+```
+
+back to
+
+```yaml
+push:
+  branches: [main]
+```
+
+Commit as `ci: remove temporary admin-operations push trigger`, push, and confirm the PR's own `pull_request` CI run passes on that commit. `grep -n "admin-operations" .github/workflows/ci.yml` must return nothing.
+
 - [ ] **Step 1: Pre-flight (read-only)**
 
 Confirm, and report each to the user:
