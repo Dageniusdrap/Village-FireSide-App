@@ -306,6 +306,38 @@ consents, recordings) is added to the project:
 moment real elder or contributor data is added — must be closed before
 then, and before launch at the latest.
 
+### The live Supabase project has no backups
+
+The live project (`dulratrptkkswvbbrffc`, "village-fire-side") is on the
+free plan. On 2026-10-04, `supabase backups list` returned an empty backup
+list with point-in-time recovery off. If the database is lost or corrupted,
+or a bad migration or mistaken delete runs against it, nothing can be
+restored. That's acceptable for test data, and not acceptable for elder
+recordings' consent records, signed agreements, and contributor details,
+which can't be recreated.
+
+The free plan also pauses projects after about a week without activity
+(the account's three other projects all show `INACTIVE`). A paused project
+takes the app offline until someone restores it from the dashboard.
+
+**Fix shape:** before any real elder or consent data goes in, either:
+
+1. move to a paid plan with daily backups (and decide whether
+   point-in-time recovery is worth its extra cost), or
+2. schedule a regular database export (for example a nightly `pg_dump`
+   via `supabase db dump`, run from CI or another always-on machine),
+   encrypted and stored off Supabase, with a tested restore.
+
+Either way, the storage buckets (`audio-raw`, `audio-episodes`,
+`consent-documents`) need their own backup: database backups don't
+include storage objects. Signed consent agreements in particular exist
+only there.
+
+**Severity:** Low while the project holds only test data. A pre-real-data
+requirement, alongside the weak admin password and the contributor-photo
+signed URLs: must be in place before the first real elder or consent
+record is added.
+
 ### Deleting an episode, series, or destination leaves its files in storage
 
 `deleteEpisode`, `deleteSeries`, and `deleteDestination` (the `actions.ts`
