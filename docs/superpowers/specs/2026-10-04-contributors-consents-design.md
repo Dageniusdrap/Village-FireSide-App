@@ -133,10 +133,10 @@ never counts as a consent of any type.
 
 New columns:
 
-| Column                        | Type                     | Notes                                                      |
-| ----------------------------- | ------------------------ | ---------------------------------------------------------- |
-| `hidden_by_consent_at`        | `timestamptz`            | Set only by the consent routine when it hides the episode. |
-| `hidden_by_consent_action_id` | `uuid` → `admin_actions` | The audit entry for that hide.                             |
+| Column                        | Type                                                      | Notes                                                                                                                                                              |
+| ----------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `hidden_by_consent_at`        | `timestamptz`                                             | Set only by the consent routine when it hides the episode.                                                                                                         |
+| `hidden_by_consent_action_id` | `uuid` → `admin_actions`, `deferrable initially deferred` | The audit entry for that hide. The foreign key is checked at commit, because the consent routine sets this column before it inserts the audit entry (see "Steps"). |
 
 Check constraint: both may be non-null only while `status = 'review'`.
 `publish_episode` and `unpublish_episode` clear them.
@@ -215,9 +215,11 @@ same `is_admin()` check as step 1), with execute revoked from `public` and
 
 1. **Admin check.** `is_admin()` for `auth.uid()`; otherwise raise. Admin
    screens call these with the admin's session, never the service-role key.
-2. **Lock** the contributor row (`select ... for update`). All consent writes
+2. **Create the audit entry's ID** (`gen_random_uuid()`), so the hide in
+   step 6 can reference it before the entry itself is written in step 7.
+3. **Lock** the contributor row (`select ... for update`). All consent writes
    for one contributor are serialized.
-3. **Validate.**
+4. **Validate.**
    - `revoked` requires a reason; reasons are 1–1000 characters.
    - `granted` and `granted_with_conditions` require a document.
    - A document path must exist in `consent-documents` (read from
@@ -226,21 +228,29 @@ same `is_admin()` check as step 1), with execute revoked from `public` and
      target is refused; a `declined` target is refused if, without it, the
      most recent counted row of that type would be `granted` or
      `granted_with_conditions` (D6).
-4. **Write** the consent or void row, with `recorded_by` / `voided_by` =
+5. **Write** the consent or void row, with `recorded_by` / `voided_by` =
    `auth.uid()`.
-5. **Re-check and hide.** Lock every published episode linked to this
+6. **Re-check and hide.** Lock every published episode linked to this
    contributor (`for update`), run `episode_publish_check` on each, and set
    any that now fail to `status = 'review'`, `published_at = null`,
-   `hidden_by_consent_at = now()`, `hidden_by_consent_action_id` = the audit
-   entry from step 6.
-6. **Audit.** One `admin_actions` entry: `consent_add`, `consent_revoke` or
-   `consent_void`, with details `{ contributor_id, consent_id | void_id,
-consent_type, consent_status, hidden_episode_ids }`. Reasons, witness
-   names and fees stay on the row and are not copied into the log.
-7. **Return** the new ID and the hidden episode IDs.
+   `hidden_by_consent_at = now()`, and `hidden_by_consent_action_id` = the ID
+   from step 2.
+7. **Audit.** Insert one `admin_actions` entry with the ID from step 2:
+   `consent_add`, `consent_revoke` or `consent_void`. Its details are:
 
-Any error raises and rolls back the whole transaction. The routine never
-re-publishes (D9).
+   ```
+   { contributor_id, consent_id | void_id, consent_type, consent_status, hidden_episode_ids }
+   ```
+
+   Reasons, witness names and fees stay on the row and are not copied into
+   the log.
+
+8. **Return** the new ID and the hidden episode IDs.
+
+Any error raises and rolls back the whole transaction, including the audit
+entry: it is written inside the same transaction, so a rolled-back write
+leaves no `admin_actions` row behind, and the deferred foreign key from
+step 6 is never checked. The routine never re-publishes (D9).
 
 **Lock order** everywhere: contributors (ascending id), then episodes. This
 is what lets the consent functions and `publish_episode` run concurrently
@@ -285,9 +295,14 @@ Security definer, admin-only, one transaction:
 3. If the `source_material` warning fails and the flag is false, refuse with
    a dedicated error code; the admin screen shows "[title] isn't verified as
    public domain. Publish anyway?" and retries with the flag on.
-4. Set a transaction-local flag (`set_config('app.publishing_episode', id,
-true)`), then `status = 'published'`, `published_at = now()`, and clear
-   `hidden_by_consent_*`.
+4. Set a transaction-local flag holding the episode's ID, then
+   `status = 'published'`, `published_at = now()`, and clear
+   `hidden_by_consent_*`. The flag is set with:
+
+   ```sql
+   select set_config('app.publishing_episode', p_episode_id::text, true);
+   ```
+
 5. Audit `publish`, including `acknowledged_unverified_source` and the
    source material ID when acknowledged.
 
@@ -536,7 +551,10 @@ passing pgTAP test, so setup problems surface separately from consent logic:
   fails); document required for grants; document path must exist; storage
   snapshot copied; append-only triggers on both tables; hiding sets
   `review`, clears `published_at`, sets `hidden_by_consent_*`, writes one
-  audit entry listing the hidden episodes; never re-publishes.
+  audit entry listing the hidden episodes; never re-publishes. **Rollback
+  leaves nothing**: a consent write that fails after the hide (forced by a
+  test-only failure) leaves no consent row, no void row, no episode change
+  and no `admin_actions` entry.
 - **Publish check**: the five Prompt 14 browser scenarios (no contributor;
   elder without consent; wrong-type and declined consents; `granted`; newer
   `revoked`), void of the only `granted` row (fails), void of a newer
