@@ -10,7 +10,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "turbo run test --filter=!@village-fireside/db-integration-tests",
     "test:db": "supabase test db supabase/tests/*.test.sql",
     "test:integration": "pnpm --filter @village-fireside/db-integration-tests test",
     "prepare": "husky"

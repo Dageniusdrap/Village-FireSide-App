@@ -1,0 +1,5 @@
+{
+  "extends": "@village-fireside/typescript-config/base.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["src", "vitest.config.ts"]
+}
