@@ -57,6 +57,7 @@
 - Create: `supabase/tests/000_harness.test.sql`
 - Create: `docs/testing-database.md`
 - Modify: `package.json` (root scripts)
+- Modify: `.gitignore` (add `supabase/.branches/`)
 
 **Interfaces:**
 
@@ -238,6 +239,18 @@ In the root `package.json` `"scripts"`, add:
 
 (`test:integration` starts working in Task 2.)
 
+- [ ] **Step 4b: Ignore the Supabase CLI's branch cache**
+
+Append to the root `.gitignore`, under the existing `supabase/.temp/` entry:
+
+```
+# Supabase CLI local branch cache, created by `supabase start`
+supabase/.branches/
+```
+
+Run: `git status --short`
+Expected: `supabase/.branches/` no longer listed.
+
 - [ ] **Step 5: Document how to run the database tests**
 
 ```markdown
@@ -270,7 +283,7 @@ from one checkout at a time.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add supabase/tests/helpers/fixtures.sql supabase/tests/000_harness.test.sql docs/testing-database.md package.json
+git add supabase/tests/helpers/fixtures.sql supabase/tests/000_harness.test.sql docs/testing-database.md package.json .gitignore
 git commit -m "Prompt 15A: add pgTAP harness with one trivial test"
 ```
 
@@ -1256,7 +1269,7 @@ git commit -m "Prompt 15A: add the shared SQL publish check"
 begin;
 \ir helpers/fixtures.sql
 
-select plan(31);
+select plan(34);
 
 select tests.create_user('admin') as admin_id \gset
 select tests.create_user('listener') as listener_id \gset
@@ -1396,6 +1409,34 @@ select lives_ok(
 select throws_ok(
   format($$select void_consent(%L, 'again')$$, :'f_declined'),
   'VF004', null, 'a consent can be voided only once'
+);
+
+-- The wrong-type fix, the case voiding exists for: a grant recorded as
+-- the wrong type can always be voided, and a mistyped latest decline can
+-- be voided when no earlier grant of that type exists.
+reset role;
+select tests.create_contributor('elder') as wt \gset
+select tests.create_episode() as wte \gset
+select tests.link(:'wte', :'wt');
+select tests.add_consent(:'wt', 'story_recording', 'granted');
+select tests.add_consent(:'wt', 'photo', 'granted') as wt_photo \gset
+select tests.add_consent(:'wt', 'video', 'declined') as wt_video \gset
+select tests.force_publish(:'wte');
+select tests.claims_for(:'admin_id');
+set local role authenticated;
+select is(
+  (void_consent(:'wt_photo', 'meant story_recording, recorded as photo')->'hidden_episode_ids'),
+  '[]'::jsonb,
+  'wrong-type fix: voiding a mistyped photo grant succeeds and hides nothing'
+);
+select lives_ok(
+  format($$select void_consent(%L, 'meant photo, recorded as video')$$, :'wt_video'),
+  'wrong-type fix: a mistyped latest decline with no earlier grant can be voided'
+);
+select is(
+  (select status::text from episodes where id = :'wte'),
+  'published',
+  'wrong-type fixes leave the story_recording-backed episode published'
 );
 
 -- Voiding the granted row behind a published episode hides it
@@ -7537,29 +7578,56 @@ supabase functions deploy get-contributor-photos
 
 Report each result. If anything fails, stop and report; do not attempt fixes against the live project without the user's approval.
 
-### Task 29: Browser QA on the live project
+### Task 29: Browser QA (local) and a read-only live smoke check
 
-- [ ] **Step 1: Run the pass with the test accounts**
+Decided with the user (2026-10-04): the full QA pass runs against **local Supabase**, so no consent row, test or otherwise, is ever written to the live project. The live project only gets a read-only smoke check.
 
-Sign in to the admin as `admin-test@villagefireside.app` (password in `apps/admin/.env.local`) with `playwright-cli`, as in the Prompt 14 checks. Create `[QA]`-labelled data and check:
+- [ ] **Step 1: Point the admin app at the local stack**
+
+```bash
+supabase db reset --local
+eval "$(supabase status -o env | sed -E 's/^([A-Z_]+)=/export LOCAL_\1=/')"
+cd apps/admin
+NEXT_PUBLIC_SUPABASE_URL="$LOCAL_API_URL" \
+NEXT_PUBLIC_SUPABASE_ANON_KEY="$LOCAL_ANON_KEY" \
+SUPABASE_SERVICE_ROLE_KEY="$LOCAL_SERVICE_ROLE_KEY" \
+TEST_ADMIN_PASSWORD=local-admin-pass TEST_TEACHER_PASSWORD=local-teacher-pass TEST_LISTENER_PASSWORD=local-listener-pass \
+  pnpm provision:test-accounts
+NEXT_PUBLIC_SUPABASE_URL="$LOCAL_API_URL" \
+NEXT_PUBLIC_SUPABASE_ANON_KEY="$LOCAL_ANON_KEY" \
+SUPABASE_SERVICE_ROLE_KEY="$LOCAL_SERVICE_ROLE_KEY" \
+  pnpm dev
+```
+
+Environment variables set on the command line take precedence over `.env.local`, so these never touch the live project. Before signing in, confirm the app is on the local stack: the browser's network requests go to `127.0.0.1:54321`, not `*.supabase.co`. If they don't, stop.
+
+- [ ] **Step 2: Run the pass with `playwright-cli`**
+
+Sign in as `admin-test@villagefireside.app` / `local-admin-pass` and check:
 
 1. Add an elder contributor; upload a photo; badge reads "Hidden from app: no photo consent recorded".
 2. Add a `photo` consent `granted_with_conditions` with an agreement: the conditions message shows; badge reads the conditions text.
-3. Add `photo` `granted`: badge "Shown in the app"; the photo function returns a link for this contributor.
+3. Add `photo` `granted`: badge "Shown in the app"; the local photo function returns a link for this contributor.
 4. Create an elder-testimony episode, link the elder, add `story_recording` `granted` with an agreement, publish.
 5. Revoke `story_recording` with a reason: the preview lists the episode; afterwards the episode shows "Hidden because consent changed" with the checklist; `published_at` is empty in the database.
 6. Open the agreement: "Verified".
 7. Try to void the revoked row: no Void button; a direct `void_consent` call is refused.
-8. Link an unverified source material to another episode and publish: the acknowledgement dialog appears; the audit entry records it.
-9. Delete the QA episode, series and destination: their files are gone from storage; Settings shows no pending cleanup.
-10. `/consents` shows the full history by default, with reasons.
+8. Record a `photo` grant by mistake and void it as a wrong-type entry: it shows crossed out with the reason; nothing is hidden.
+9. Link an unverified source material to another episode and publish: the acknowledgement dialog appears; the audit entry records it.
+10. Delete the QA episode, series and destination: their files are gone from local storage; Settings shows no pending cleanup.
+11. `/consents` shows the full history by default, with reasons.
 
-- [ ] **Step 2: Clean up QA data**
+- [ ] **Step 3: Read-only smoke check on the live project**
 
-Delete the `[QA]` episodes, series and destinations through the admin. Consent rows are permanent by design, so `[QA]` contributors with consents stay; record their ids in the report so the user can decide whether to remove them with a reviewed SQL statement (the append-only trigger would have to be bypassed deliberately). Do not bypass it without the user's approval.
+Writes nothing:
 
-- [ ] **Step 3: Report**
+1. `supabase migration list --linked`: local and remote identical.
+2. `supabase db query --linked "select (select count(*) from consents) consents, (select count(*) from contributors) contributors, (select count(*) from episodes) episodes"`: same counts as Task 28 Step 1.
+3. Call the deployed `get-contributor-photos` as a guest with one random UUID: `200 {"photos":{}}` and `Cache-Control: no-store`.
+4. Sign in to the live admin as the test admin and open `/contributors`, `/consents`, `/source-materials` and `/settings` without creating anything: each loads without an error.
 
-Report each check's result, the QA data left behind (and why), and anything unexpected.
+- [ ] **Step 4: Report**
+
+Report each check's result and anything unexpected. Nothing is left behind on the live project; the local QA data disappears with the next `supabase db reset --local`.
 
 **MILESTONE 6 STOP.** Then use superpowers:finishing-a-development-branch.
