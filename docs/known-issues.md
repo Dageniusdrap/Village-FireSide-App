@@ -346,14 +346,21 @@ This matters most for contributor and elder photos: a photo removed
 because consent was revoked, or hidden by setting `is_anonymous`, has to
 stop being served promptly.
 
-**Fix shape:** decision pending, and required before any real elder photo
-is uploaded (Prompt 15 adds contributor photo upload). The options are a
-much shorter `cacheControl` set at upload, or contributor photos in a
-private bucket served through short-lived signed URLs (the
-`get-episode-audio` pattern). The recommendation is signed URLs for
-contributor photos only, with series and destination images staying public.
+**Decision (2026-10-04):** contributor photos move to a private bucket and
+are served through short-lived signed URLs, minted by a server-side function
+that checks `is_anonymous` and the contributor's latest `photo` consent on
+every request. Revoking consent or making a contributor anonymous then stops
+new views immediately, and existing links expire within their TTL. Series
+covers, destination covers and destination gallery photos have no personal
+consent attached, so they stay in the public `images` bucket with the
+default one-hour CDN caching.
 
-**Severity:** Low today (no real photos). Must be resolved before the first
+**Fix shape:** built in Prompt 15A, which adds contributor photo upload. It
+also changes the mobile screens that show contributor photos to fetch signed
+links instead of reading a public URL. The orphaned-file cleanup above still
+applies to the public images.
+
+**Severity:** Low today (no real photos). Must be built before the first
 real contributor photo is uploaded.
 
 ### Unpublishing an episode leaves `published_at` set
