@@ -7,6 +7,35 @@ investigation.
 
 ## Mobile
 
+### PRIORITY: Downloaded episodes keep playing after consent is revoked
+
+From Prompt 15A, revoking an elder's `story_recording` consent moves every
+affected published episode to `review` in the same database transaction,
+so it disappears from the catalogue and can no longer be streamed. But
+episodes already downloaded for offline listening are permanent local
+files (`apps/mobile/src/lib/downloads-db.ts` plus the audio file). Nothing
+ever re-checks them, so a listener who downloaded the episode keeps
+playing it indefinitely.
+
+This is a consent problem, not just a limitation: an elder who withdraws
+consent has a reasonable expectation that their recording stops being
+played. The Prompt 10 rule that downloads are permanent was written for
+premium subscriptions lapsing, not for content being withdrawn.
+
+**Fix shape:** at each sync (app start, return to the foreground, and when
+connectivity returns, throttled), the app asks the server which of its
+downloaded episode IDs are still published, and removes any download the
+server confirms is not, using the existing `remove()` in
+`download-queue-store.ts`. It must only delete on a successful server
+response, never because a request failed or the device is offline. Sized in
+the Prompt 15A spec ("Offline downloads after a revocation"). Not built in
+15A.
+
+**Severity:** High once real elder recordings are published and
+downloadable. Should land before, or together with, the first real elder
+testimony episode. Phones that never come back online keep the file
+regardless; that residual gap can't be closed without DRM.
+
 ### Auth screen group has no back-navigation affordance
 
 `apps/mobile/src/app/(auth)/_layout.tsx` sets `headerShown: false` for the
