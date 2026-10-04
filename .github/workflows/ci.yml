@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # TEMPORARY: admin-operations runs CI on push so db-tests can be timed
+    # without a PR. Removed in Task 28 Step 0 (plan: 2026-10-04-contributors-consents.md).
+    branches: [main, admin-operations]
   pull_request:
     branches: [main]
 
