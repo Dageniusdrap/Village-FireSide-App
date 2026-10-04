@@ -36,3 +36,6 @@ pnpm-debug.log*
 
 # Supabase CLI local link cache (project ref, pooler URL, version info)
 supabase/.temp/
+
+# Supabase CLI local branch cache, created by `supabase start`
+supabase/.branches/

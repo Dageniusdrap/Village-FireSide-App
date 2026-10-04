@@ -11,6 +11,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:db": "supabase test db supabase/tests/*.test.sql",
+    "test:integration": "pnpm --filter @village-fireside/db-integration-tests test",
     "prepare": "husky"
   },
   "devDependencies": {
