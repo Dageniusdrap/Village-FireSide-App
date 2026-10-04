@@ -305,3 +305,70 @@ consents, recordings) is added to the project:
 **Severity:** Low while the project holds only test data. High the
 moment real elder or contributor data is added — must be closed before
 then, and before launch at the latest.
+
+### Deleting an episode, series, or destination leaves its files in storage
+
+`deleteEpisode`, `deleteSeries`, and `deleteDestination` (the `actions.ts`
+files under `apps/admin/src/app/(dashboard)/`) delete only the database
+row. Whatever files the row pointed to stay in storage indefinitely:
+
+- the episode's audio in `audio-episodes` (confirmed in a browser QA run on
+  2026-10-03: the episode row was gone, the `.m4a` object was not);
+- the series or destination cover image in `images`;
+- every gallery photo of a deleted destination: `destination_media` rows
+  go via `on delete cascade`, but nothing removes their storage objects.
+  Deleting a single gallery photo does clean up (`deleteDestinationMedia`).
+
+The Prompt 14 spec only required storage cleanup for single gallery photos,
+so this is a spec gap rather than an implementation bug. Orphaned files
+in the public `images` bucket stay publicly reachable at their old URLs.
+
+**Fix shape:** in each delete action, read the row's storage paths first
+(`audio_url`; cover URL converted back to a path; every `destination_media`
+URL for that destination), delete the row, then `storage.remove()` the
+paths. Log a failed remove rather than failing the delete. Consider a
+one-off sweep for objects no row references.
+
+**Severity:** Low today (test data only). Grows with real content: wasted
+storage, and public images left reachable after the content is removed.
+
+### The CDN keeps serving deleted public images for up to an hour
+
+Files in the public `images` bucket are served through Supabase's CDN with
+`cache-control: public, max-age=3600`, the default since uploads don't set
+`cacheControl`. In the 2026-10-03 QA run, a gallery photo deleted through
+the admin UI was gone from storage (an uncached request returned 400), but
+its public URL still returned 200 from the CDN (`cf-cache-status: HIT`).
+A deleted image can stay reachable for up to an hour, and longer on any
+device or proxy that cached it.
+
+This matters most for contributor and elder photos: a photo removed
+because consent was revoked, or hidden by setting `is_anonymous`, has to
+stop being served promptly.
+
+**Fix shape:** decision pending, and required before any real elder photo
+is uploaded (Prompt 15 adds contributor photo upload). The options are a
+much shorter `cacheControl` set at upload, or contributor photos in a
+private bucket served through short-lived signed URLs (the
+`get-episode-audio` pattern). The recommendation is signed URLs for
+contributor photos only, with series and destination images staying public.
+
+**Severity:** Low today (no real photos). Must be resolved before the first
+real contributor photo is uploaded.
+
+### Unpublishing an episode leaves `published_at` set
+
+`unpublishEpisode` sets `status` back to `draft` but leaves `published_at`
+at the original publish time (confirmed in the 2026-10-03 QA run). Anything
+that treats a non-null `published_at` as "is published", or sorts drafts by
+it, will be wrong, and re-publishing overwrites the original date with no
+record of the first one.
+
+**Fix shape:** decide what `published_at` means. If it is "currently
+published since", clear it on unpublish. If it is "first published", keep
+it but never overwrite it on re-publish. Then check every reader of the
+column matches that meaning.
+
+**Severity:** Low. Public visibility is decided by `status` (the episodes
+RLS policy is `using (status = 'published')`), and the mobile app never
+reads `published_at`.
